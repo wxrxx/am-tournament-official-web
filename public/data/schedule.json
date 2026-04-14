@@ -1,0 +1,18 @@
+[
+  {
+    "id": "match_001",
+    "date": "2026-05-10T15:00:00Z",
+    "teamA": "Satun United",
+    "teamB": "FC Lipe",
+    "score": null,
+    "status": "upcoming"
+  },
+  {
+    "id": "match_002",
+    "date": "2026-05-15T15:00:00Z",
+    "teamA": "Andaman Boys",
+    "teamB": "Southern Stars",
+    "score": "2-1",
+    "status": "completed"
+  }
+]

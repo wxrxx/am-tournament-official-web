@@ -1,0 +1,28 @@
+[
+  {
+    "albumId": "album_001",
+    "matchId": "match_002",
+    "title": "FC Lipe vs Andaman Boys (High-Res Photos)",
+    "date": "2026-05-15",
+    "coverUrl": "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=800&q=80",
+    "isProtected": true,
+    "password": "am",
+    "photos": [
+      { "id": "p_01", "url": "https://images.unsplash.com/photo-1543326727-cf6c39e8f84c?w=1200&q=80", "price": 50 },
+      { "id": "p_02", "url": "https://images.unsplash.com/photo-1553152531-ee85160dd80e?w=1200&q=80", "price": 50 },
+      { "id": "p_03", "url": "https://images.unsplash.com/photo-1600250395356-829d8926ea69?w=1200&q=80", "price": 100 }
+    ]
+  },
+  {
+    "albumId": "album_002",
+    "matchId": "match_003",
+    "title": "Satun United vs Southern Stars",
+    "date": "2026-05-20",
+    "coverUrl": "https://images.unsplash.com/photo-1518605368461-1e1e38ce713a?w=800&q=80",
+    "isProtected": false,
+    "photos": [
+      { "id": "p_04", "url": "https://images.unsplash.com/photo-1522778119026-d647f0596c20?w=1200&q=80", "price": 50 },
+      { "id": "p_05", "url": "https://images.unsplash.com/photo-1508344928928-7165b67de128?w=1200&q=80", "price": 50 }
+    ]
+  }
+]
