@@ -2,9 +2,12 @@
 
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { UploadCloud, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { UploadCloud, ArrowLeft, CheckCircle2, Loader2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { DataService } from "@/services/dataService";
+import { CldUploadWidget } from "next-cloudinary";
+
+import { swal } from "@/lib/swal";
 
 function CheckoutForm() {
   const searchParams = useSearchParams();
@@ -16,7 +19,7 @@ function CheckoutForm() {
   const price = Number(searchParams.get("price") ?? 0);
   const name = searchParams.get("name") ?? `รายการ #${itemId}`;
 
-  const [slip, setSlip] = useState<File | null>(null);
+  const [slipUrl, setSlipUrl] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
 
@@ -55,18 +58,22 @@ function CheckoutForm() {
     );
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!slip) return alert("กรุณาอัปโหลดสลิปโอนเงิน");
+    if (!slipUrl) return swal.error("กรุณาอัปโหลดสลิปโอนเงิน");
     setSubmitting(true);
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const base64 = reader.result?.toString() ?? "";
-      await DataService.submitPaymentSlip({ type, itemId, price, name, date: new Date().toISOString() }, base64);
+    
+    const success = await DataService.submitPaymentSlip(
+      { type, itemId, price, name, date: new Date().toISOString() }, 
+      slipUrl
+    );
+
+    if (success) {
       setDone(true);
-      setSubmitting(false);
-    };
-    reader.readAsDataURL(slip);
+    } else {
+      swal.error("เกิดข้อผิดพลาดในการส่งข้อมูล", "กรุณาลองใหม่อีกครั้ง หรือติดต่อผู้ดูแลระบบ");
+    }
+    setSubmitting(false);
   };
 
   return (
@@ -119,26 +126,45 @@ function CheckoutForm() {
 
           <form onSubmit={handleSubmit}>
             <p className="text-[13px] font-medium text-foreground mb-3">แนบสลิปโอนเงิน</p>
-            <label className="relative flex flex-col items-center justify-center border border-dashed border-border/60 rounded-sm p-8 cursor-pointer hover:bg-muted/20 transition-colors mb-6">
-              <input
-                type="file"
-                accept="image/*"
-                required
-                onChange={(e) => setSlip(e.target.files?.[0] ?? null)}
-                className="absolute inset-0 opacity-0 cursor-pointer"
-              />
-              <UploadCloud size={22} className={slip ? "text-primary" : "text-muted-foreground"} strokeWidth={1.5} />
-              <span className="text-[13px] text-muted-foreground mt-2">
-                {slip ? slip.name : "คลิกเพื่อเลือกไฟล์รูปสลิป"}
-              </span>
-            </label>
+            
+            <CldUploadWidget
+              signatureEndpoint="/api/sign-cloudinary-params"
+              onSuccess={(result: any) => {
+                setSlipUrl(result.info.secure_url);
+              }}
+              options={{
+                maxFiles: 1,
+                folder: "slips",
+                clientAllowedFormats: ["jpg", "png", "pdf"],
+              }}
+            >
+              {({ open }) => (
+                <div 
+                  onClick={() => open()}
+                  className="relative flex flex-col items-center justify-center border border-dashed border-border/60 rounded-sm p-8 cursor-pointer hover:bg-muted/20 transition-colors mb-6 overflow-hidden"
+                >
+                  <UploadCloud size={22} className={slipUrl ? "text-primary" : "text-muted-foreground"} strokeWidth={1.5} />
+                  <span className="text-[13px] text-muted-foreground mt-2">
+                    {slipUrl ? "อัปโหลดสลิปเรียบร้อย" : "คลิกเพื่ออัปโหลดสลิป (.jpg, .png)"}
+                  </span>
+                  {slipUrl && (
+                    <div className="absolute inset-0 bg-primary/5 border border-primary/20 pointer-events-none" />
+                  )}
+                </div>
+              )}
+            </CldUploadWidget>
 
             <button
               type="submit"
-              disabled={submitting || !slip}
-              className="w-full py-3.5 bg-foreground text-background text-sm font-semibold rounded-sm hover:opacity-85 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+              disabled={submitting || !slipUrl}
+              className="w-full py-3.5 bg-foreground text-background text-sm font-semibold rounded-sm hover:opacity-85 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              {submitting ? "กำลังดำเนินการ…" : "ยืนยันการชำระเงิน"}
+              {submitting ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  กำลังดำเนินการ…
+                </>
+              ) : "ยืนยันการชำระเงิน"}
             </button>
           </form>
         </div>

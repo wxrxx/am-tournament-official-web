@@ -1,11 +1,30 @@
-// Mock Data Service
-// Designed to be easily replaced by Supabase / external API in the future
+// Data Service
+// Supports Firebase Firestore & Storage
+// Cleaned: Removed all mock data fallbacks
+
+import { db, isFirebaseConfigured } from "@/lib/firebase";
+import { 
+  collection, 
+  getDocs, 
+  getDoc, 
+  doc, 
+  addDoc, 
+  deleteDoc, 
+  updateDoc, 
+  query, 
+  orderBy,
+  limit
+} from "firebase/firestore";
 
 export interface Match {
   id: string;
   date: string;
-  teamA: string;
-  teamB: string;
+  time?: string;
+  home?: string;
+  away?: string;
+  venue?: string;
+  teamA?: string;
+  teamB?: string;
   score: string | null;
   status: "upcoming" | "completed";
 }
@@ -27,60 +46,240 @@ export interface GalleryAlbum {
   photos: Photo[];
 }
 
+export interface Product {
+  id: string;
+  name: string;
+  price: number;
+  stock: number;
+  category: string;
+  image?: string;
+}
+
+export interface Package {
+  id: string;
+  name: string;
+  price: number;
+  features: string[];
+  status: "Active" | "Inactive";
+}
+
+export interface Team {
+  id: string;
+  name: string;
+  shortName: string;
+  region: string;
+  since: number;
+  points: number;
+  logoColor: string;
+  bgColor: string;
+}
+
 export const DataService = {
+  // --- TEAMS ---
+  getTeams: async (): Promise<Team[]> => {
+    if (isFirebaseConfigured) {
+      try {
+        const snapshot = await getDocs(query(collection(db!, "teams"), orderBy("points", "desc")));
+        return snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Team));
+      } catch (error) {
+        console.error("Firebase getTeams Error:", error);
+      }
+    }
+    return [];
+  },
+  // --- MATCHES ---
   getMatches: async (): Promise<Match[]> => {
-    // Dynamic import to avoid SSR fetch absolute URL errors
-    const data = await import("../../public/data/schedule.json");
-    return data.default as Match[];
+    if (isFirebaseConfigured) {
+      try {
+        const snapshot = await getDocs(query(collection(db!, "matches"), orderBy("date", "desc")));
+        return snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Match));
+      } catch (error) {
+        console.error("Firebase getMatches Error:", error);
+      }
+    }
+    return [];
   },
 
+  // --- GALLERY ---
   getGalleryAlbums: async (): Promise<GalleryAlbum[]> => {
-    const data = await import("../../public/data/gallery.json");
-    return data.default as GalleryAlbum[];
+    if (isFirebaseConfigured) {
+      try {
+        const snapshot = await getDocs(query(collection(db!, "albums"), orderBy("date", "desc")));
+        return snapshot.docs.map(d => ({ albumId: d.id, ...d.data() } as GalleryAlbum));
+      } catch (error) {
+        console.error("Firebase getGalleryAlbums Error:", error);
+      }
+    }
+    return [];
   },
 
   getAlbumById: async (albumId: string): Promise<GalleryAlbum | undefined> => {
-    const albums = await DataService.getGalleryAlbums();
-    return albums.find((a) => a.albumId === albumId);
+    if (isFirebaseConfigured) {
+      try {
+        const docSnap = await getDoc(doc(db!, "albums", albumId));
+        if (docSnap.exists()) return { albumId: docSnap.id, ...docSnap.data() } as GalleryAlbum;
+      } catch (error) {
+        console.error("Firebase getAlbumById Error:", error);
+      }
+    }
+    return undefined;
   },
 
-  // Mock functions for payment/mutations
-  submitPaymentSlip: async (orderDetails: any, slipImageBase64: string): Promise<boolean> => {
-    console.log("Mock Submit Payment:", orderDetails);
-    // TODO: Future Supabase Integration - Save order to 'orders' table
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve(true); // Always succeeds in mock
-      }, 1000);
-    });
-  },
-
-  // Admin Methods (Mock)
-  createAlbum: async (album: Partial<GalleryAlbum>): Promise<boolean> => {
-    console.log("Mock Admin: Creating Album", album);
-    // TODO: Future Supabase Integration - Insert to 'albums' table
-    return true;
+  createAlbum: async (albumData: Partial<GalleryAlbum>): Promise<boolean> => {
+    if (isFirebaseConfigured) {
+      try {
+        await addDoc(collection(db!, "albums"), { 
+          ...albumData, 
+          photos: albumData.photos || [] 
+        });
+        return true;
+      } catch (error) {
+        console.error("Firebase createAlbum Error:", error);
+        return false;
+      }
+    }
+    return false;
   },
 
   deleteAlbum: async (albumId: string): Promise<boolean> => {
-    console.log("Mock Admin: Deleting Album", albumId);
-    // TODO: Future Supabase Integration - Delete from 'albums' table
-    return true;
+    if (isFirebaseConfigured) {
+      try {
+        await deleteDoc(doc(db!, "albums", albumId));
+        return true;
+      } catch (error) {
+        console.error("Firebase deleteAlbum Error:", error);
+        return false;
+      }
+    }
+    return false;
   },
 
-  updateProduct: async (productId: string, data: any): Promise<boolean> => {
-    console.log("Mock Admin: Updating Product", productId, data);
-    // TODO: Future Supabase Integration - Update 'products' table
-    return true;
+  // --- SHOP ---
+  getProducts: async (): Promise<Product[]> => {
+    if (isFirebaseConfigured) {
+      try {
+        const snapshot = await getDocs(collection(db!, "products"));
+        return snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Product));
+      } catch (error) {
+        console.error("Firebase getProducts Error:", error);
+      }
+    }
+    return [];
   },
 
-  getOrders: async (): Promise<any[]> => {
-    // TODO: Future Supabase Integration - Fetch from 'orders' table
-    return [
-      { id: "ORD001", user: "John Doe", type: "Photo", item: "Final Match 2026", price: 100, status: "Pending", date: "2026-05-15" },
-      { id: "ORD002", user: "Jane Smith", type: "Product", item: "Jersey (Home)", price: 490, status: "Confirmed", date: "2026-05-16" },
-      { id: "ORD003", user: "Bob Builder", type: "Package", item: "Professional", price: 4500, status: "Pending", date: "2026-05-16" },
-    ];
+  createProduct: async (productData: Partial<Product>): Promise<boolean> => {
+    if (isFirebaseConfigured) {
+      try {
+        await addDoc(collection(db!, "products"), productData);
+        return true;
+      } catch (error) {
+        console.error("Firebase createProduct Error:", error);
+        return false;
+      }
+    }
+    return false;
+  },
+
+  deleteProduct: async (productId: string): Promise<boolean> => {
+    if (isFirebaseConfigured) {
+      try {
+        await deleteDoc(doc(db!, "products", productId));
+        return true;
+      } catch (error) {
+        console.error("Firebase deleteProduct Error:", error);
+        return false;
+      }
+    }
+    return false;
+  },
+
+  updateProduct: async (productId: string, data: Partial<Product>): Promise<boolean> => {
+    if (isFirebaseConfigured) {
+      try {
+        await updateDoc(doc(db!, "products", productId), data);
+        return true;
+      } catch (error) {
+        console.error("Firebase updateProduct Error:", error);
+        return false;
+      }
+    }
+    return false;
+  },
+
+  // --- PACKAGES ---
+  getPackages: async (): Promise<Package[]> => {
+    if (isFirebaseConfigured) {
+      try {
+        const snapshot = await getDocs(collection(db!, "packages"));
+        return snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Package));
+      } catch (error) {
+        console.error("Firebase getPackages Error:", error);
+      }
+    }
+    return [];
+  },
+
+  updatePackage: async (pkgId: string, data: Partial<Package>): Promise<boolean> => {
+    if (isFirebaseConfigured) {
+      try {
+        await updateDoc(doc(db!, "packages", pkgId), data);
+        return true;
+      } catch (error) {
+        console.error("Firebase updatePackage Error:", error);
+        return false;
+      }
+    }
+    return false;
+  },
+
+  // --- ORDERS ---
+  getOrders: async (count?: number): Promise<any[]> => {
+    if (isFirebaseConfigured) {
+      try {
+        const q = count 
+          ? query(collection(db!, "orders"), orderBy("date", "desc"), limit(count))
+          : query(collection(db!, "orders"), orderBy("date", "desc"));
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      } catch (error) {
+        console.error("Firebase getOrders Error:", error);
+      }
+    }
+    return [];
+  },
+
+  updateOrder: async (orderId: string, data: any): Promise<boolean> => {
+    if (isFirebaseConfigured) {
+      try {
+        await updateDoc(doc(db!, "orders", orderId), data);
+        return true;
+      } catch (error) {
+        console.error("Firebase updateOrder Error:", error);
+        return false;
+      }
+    }
+    return false;
+  },
+
+  submitPaymentSlip: async (orderDetails: any, slipUrl: string): Promise<boolean> => {
+    if (isFirebaseConfigured) {
+      try {
+        await addDoc(collection(db!, "orders"), { 
+          ...orderDetails, 
+          slipUrl, 
+          status: "Pending", 
+          date: new Date().toISOString() 
+        });
+        return true;
+      } catch (error) {
+        console.error("Firebase submitPayment Error:", error);
+        return false;
+      }
+    }
+    return false;
   }
 };
+
+
+
 

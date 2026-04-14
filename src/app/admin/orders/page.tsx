@@ -2,22 +2,29 @@
 
 import { useEffect, useState } from "react";
 import { DataService } from "@/services/dataService";
-import { Eye, CheckCircle, Clock, FileText, ExternalLink } from "lucide-react";
+import { Eye, CheckCircle, Clock, FileText, ExternalLink, Loader2 } from "lucide-react";
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    DataService.getOrders().then(data => {
-      setOrders(data);
-      setIsLoading(false);
-    });
+    loadOrders();
   }, []);
 
-  const handleStatusChange = (id: string, newStatus: string) => {
-    setOrders(orders.map(o => o.id === id ? { ...o, status: newStatus } : o));
-    // TODO: Future Supabase Integration - Update 'orders' table via DataService
+  const loadOrders = async () => {
+    setIsLoading(true);
+    const data = await DataService.getOrders();
+    setOrders(data);
+    setIsLoading(false);
+  };
+
+  const handleStatusChange = async (id: string, currentStatus: string) => {
+    const newStatus = currentStatus === "Pending" ? "Confirmed" : "Pending";
+    const success = await DataService.updateOrder(id, { status: newStatus });
+    if (success) {
+      setOrders(orders.map(o => o.id === id ? { ...o, status: newStatus } : o));
+    }
   };
 
   return (
@@ -44,23 +51,25 @@ export default function AdminOrdersPage() {
             <tbody className="divide-y divide-border/20">
               {isLoading ? (
                 Array(3).fill(0).map((_, i) => (
-                  <tr key={i} className="animate-pulse">
-                    <td colSpan={7} className="px-6 py-8 bg-muted/10"></td>
+                  <tr key={i}>
+                    <td colSpan={7} className="px-6 py-10 text-center">
+                       <Loader2 className="animate-spin text-primary inline-block" size={20} />
+                    </td>
                   </tr>
                 ))
-              ) : (
+              ) : orders.length > 0 ? (
                 orders.map((o) => (
                   <tr key={o.id} className="hover:bg-muted/10 transition-colors">
-                    <td className="px-6 py-5 font-mono text-[11px] text-muted-foreground">{o.id}</td>
-                    <td className="px-6 py-5 font-medium text-foreground">{o.user}</td>
+                    <td className="px-6 py-5 font-mono text-[11px] text-muted-foreground">{o.id.substring(0, 8)}...</td>
+                    <td className="px-6 py-5 font-medium text-foreground">{o.user || "ผู้ใช้ทั่วไป"}</td>
                     <td className="px-6 py-5">
-                      <span className="text-[10px] bg-muted px-2 py-1 rounded-sm border border-border/20">{o.type}</span>
+                      <span className="text-[10px] bg-muted px-2 py-1 rounded-sm border border-border/20">{o.type || "ทั่วไป"}</span>
                     </td>
                     <td className="px-6 py-5 text-muted-foreground">{o.item}</td>
-                    <td className="px-6 py-5 text-center font-bold text-foreground">฿{o.price.toLocaleString()}</td>
+                    <td className="px-6 py-5 text-center font-bold text-foreground">฿{(Number(o.price) || 0).toLocaleString()}</td>
                     <td className="px-6 py-5 text-center">
                       <button 
-                        onClick={() => handleStatusChange(o.id, o.status === "Pending" ? "Confirmed" : "Pending")}
+                        onClick={() => handleStatusChange(o.id, o.status)}
                         className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold transition-all ${
                         o.status === "Confirmed" 
                           ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20" 
@@ -72,14 +81,29 @@ export default function AdminOrdersPage() {
                       </button>
                     </td>
                     <td className="px-6 py-5 text-right">
-                      <button className="p-2 text-muted-foreground hover:text-primary transition-all flex items-center gap-1.5 ml-auto text-[11px] uppercase tracking-wider font-semibold">
-                        <FileText size={14} />
-                        สลิปโอนเงิน
-                        <ExternalLink size={10} />
-                      </button>
+                      {o.slipUrl ? (
+                        <a 
+                          href={o.slipUrl} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="p-2 text-muted-foreground hover:text-primary transition-all flex items-center gap-1.5 ml-auto text-[11px] uppercase tracking-wider font-semibold"
+                        >
+                          <FileText size={14} />
+                          ดูสลิป
+                          <ExternalLink size={10} />
+                        </a>
+                      ) : (
+                        <span className="text-[10px] text-muted-foreground italic">ไม่มีสลิป</span>
+                      )}
                     </td>
                   </tr>
                 ))
+              ) : (
+                <tr>
+                  <td colSpan={7} className="px-6 py-20 text-center text-muted-foreground text-xs italic">
+                    ไม่มีรายการสั่งซื้อ
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>
@@ -93,3 +117,4 @@ export default function AdminOrdersPage() {
     </div>
   );
 }
+

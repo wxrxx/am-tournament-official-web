@@ -22,8 +22,18 @@ export default function ProtectedImage({ src, alt, className = "", price }: Prot
     if (!ctx) return;
 
     const img = new Image();
-    img.crossOrigin = "anonymous"; // Needed if fetching from external sources
-    img.src = src;
+    img.crossOrigin = "anonymous"; 
+
+    // Apply Cloudinary transformations if it's a Cloudinary URL
+    let finalSrc = src;
+    if (src.includes("res.cloudinary.com")) {
+      // Inject auto format, auto quality, and specific width for the canvas source
+      const baseUrl = src.split("/upload/")[0] + "/upload/";
+      const restUrl = src.split("/upload/")[1];
+      finalSrc = `${baseUrl}f_auto,q_auto,w_1200/${restUrl}`;
+    }
+    
+    img.src = finalSrc;
 
     img.onload = () => {
       // Set max size to 1200px equivalent ratio

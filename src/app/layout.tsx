@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
-import { Kanit } from "next/font/google";
+import { Kanit, Geist } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { ThemeProvider } from "@/context/ThemeContext";
 import Navbar from "@/components/Navbar";
 import ClientFooter from "@/components/ClientFooter";
+import { cn } from "@/lib/utils";
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 const kanit = Kanit({
   variable: "--font-kanit",
@@ -34,7 +37,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="th" className={kanit.variable} suppressHydrationWarning>
+    <html lang="th" className={cn("font-sans", geist.variable)} suppressHydrationWarning>
       <body className="min-h-screen flex flex-col bg-background text-foreground antialiased">
         {/* Must run before React hydration to avoid theme flash */}
         <Script id="theme-init" strategy="beforeInteractive">

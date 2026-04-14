@@ -12,6 +12,7 @@ import {
   LogOut,
   ChevronLeft
 } from "lucide-react";
+import { isFirebaseConfigured } from "@/lib/firebase";
 
 const adminLinks = [
   { name: "แดชบอร์ด", href: "/admin", icon: BarChart3 },
@@ -43,6 +44,24 @@ export default function AdminSidebar() {
             ADMIN PANEL
           </span>
         </Link>
+        <div className="mt-4 flex flex-col gap-2">
+          {isFirebaseConfigured ? (
+            <>
+              <div className="inline-flex items-center gap-2 px-2 py-0.5 bg-emerald-500/10 text-emerald-500 text-[10px] font-bold rounded-full border border-emerald-500/20 w-fit">
+                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                LIVE MODE
+              </div>
+              <p className="text-[9px] text-muted-foreground font-medium flex items-center gap-1 opacity-70">
+                <span className="w-1 h-1 bg-muted-foreground rounded-full" />
+                Connected to Cloudinary + Firestore
+              </p>
+            </>
+          ) : (
+            <div className="inline-flex items-center gap-2 px-2 py-0.5 bg-yellow-500/10 text-yellow-500 text-[10px] font-bold rounded-full border border-yellow-500/20 w-fit">
+              MOCK MODE
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Navigation */}

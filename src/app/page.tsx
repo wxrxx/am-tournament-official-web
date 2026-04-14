@@ -3,36 +3,10 @@ import { DataService } from "@/services/dataService";
 import HeroSection from "@/components/HeroSection";
 import WorksSection from "@/components/WorksSection";
 
-const upcomingMatches = [
-  { date: "เสาร์ 24 พ.ค.", time: "14:00", home: "Satun FC", away: "City Boys" },
-  { date: "เสาร์ 24 พ.ค.", time: "16:00", home: "Ratchada UTD", away: "North Kings" },
-  { date: "อาทิตย์ 25 พ.ค.", time: "09:00", home: "Lipe Marines", away: "Mueang Thong FC" },
-  { date: "อาทิตย์ 25 พ.ค.", time: "11:00", home: "Kanab FC", away: "Southern Stars" },
-];
-
-const latestHighlights = [
-  {
-    id: "1",
-    title: "Satun United คว้าชัยนัดเปิดสนาม",
-    date: "15 พ.ค. 2026",
-    image: "https://images.unsplash.com/photo-1543326727-cf6c39e8f84c?q=80&w=800",
-  },
-  {
-    id: "2",
-    title: "กฎกติกาใหม่ ฤดูกาล 2026",
-    date: "10 พ.ค. 2026",
-    image: "https://images.unsplash.com/photo-1518605363461-4ea6718d0526?q=80&w=800",
-  },
-  {
-    id: "3",
-    title: "ประตูยอดเยี่ยมประจำสัปดาห์แรก",
-    date: "18 พ.ค. 2026",
-    image: "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?q=80&w=800",
-  },
-];
-
 export default async function Home() {
   const albums = await DataService.getGalleryAlbums();
+  const allMatches = await DataService.getMatches();
+  const upcomingMatches = allMatches.filter(m => m.status === "upcoming").slice(0, 4);
 
   return (
     <div>
@@ -41,35 +15,6 @@ export default async function Home() {
 
       {/* ─── Works / Portfolio ─── */}
       <WorksSection />
-
-      {/* ─── Latest Highlights ─── */}
-      <section className="py-24 px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between mb-12">
-            <h2 className="text-xl font-semibold text-foreground">ไฮไลต์ล่าสุด</h2>
-            <Link href="/news" className="text-xs text-muted-foreground hover:text-foreground transition-colors tracking-wide">
-              ดูทั้งหมด →
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {latestHighlights.map((n) => (
-              <article key={n.id} className="group cursor-pointer">
-                <div className="aspect-[16/10] overflow-hidden rounded-sm bg-muted mb-5">
-                  <div
-                    className="w-full h-full bg-cover bg-center group-hover:scale-[1.03] transition-transform duration-500"
-                    style={{ backgroundImage: `url('${n.image}')` }}
-                  />
-                </div>
-                <p className="text-[12px] text-muted-foreground mb-2">{n.date}</p>
-                <h3 className="text-base font-medium text-foreground group-hover:text-primary transition-colors leading-snug">
-                  {n.title}
-                </h3>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* ─── Upcoming Matches ─── */}
       <section className="py-24 px-6 bg-card border-y border-border/40">
@@ -81,26 +26,32 @@ export default async function Home() {
             </Link>
           </div>
 
-          <div className="divide-y divide-border/50">
-            {upcomingMatches.map((m, i) => (
-              <div
-                key={i}
-                className="grid grid-cols-[1fr_auto_1fr] items-center py-5 gap-4 hover:bg-muted/20 px-4 -mx-4 transition-colors rounded-sm"
-              >
-                {/* Home */}
-                <p className="text-sm font-medium text-foreground text-right">{m.home}</p>
+          {upcomingMatches.length === 0 ? (
+            <div className="py-12 border border-dashed border-border/60 rounded-sm text-center">
+              <p className="text-sm text-muted-foreground">ยังไม่มีกำหนดการแข่งขันในขณะนี้</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-border/50">
+              {upcomingMatches.map((m, i) => (
+                <div
+                  key={i}
+                  className="grid grid-cols-[1fr_auto_1fr] items-center py-5 gap-4 hover:bg-muted/20 px-4 -mx-4 transition-colors rounded-sm"
+                >
+                  {/* Home */}
+                  <p className="text-sm font-medium text-foreground text-right">{m.home || m.teamA}</p>
 
-                {/* Center: date + time */}
-                <div className="text-center px-6">
-                  <p className="text-[11px] text-muted-foreground mb-0.5">{m.date}</p>
-                  <p className="text-sm font-bold text-foreground tabular-nums">{m.time}</p>
+                  {/* Center: date + time */}
+                  <div className="text-center px-6">
+                    <p className="text-[11px] text-muted-foreground mb-0.5">{m.date}</p>
+                    <p className="text-sm font-bold text-foreground tabular-nums">{m.time || "TBD"}</p>
+                  </div>
+
+                  {/* Away */}
+                  <p className="text-sm font-medium text-foreground">{m.away || m.teamB}</p>
                 </div>
-
-                {/* Away */}
-                <p className="text-sm font-medium text-foreground">{m.away}</p>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

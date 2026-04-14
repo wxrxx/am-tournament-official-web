@@ -1,39 +1,26 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
-
-export const metadata = { title: "ร้านค้า | AM Tournament" };
-
-const products = [
-  {
-    id: "prod_001",
-    name: "เสื้อแข่งขัน AM Tournament 2026 (เหย้า)",
-    price: 490,
-    category: "เสื้อผ้า",
-    image: "https://images.unsplash.com/photo-1580052614034-c55d20bfee3b?w=800&q=80",
-  },
-  {
-    id: "prod_002",
-    name: "เสื้อแข่งขัน AM Tournament 2026 (เยือน)",
-    price: 490,
-    category: "เสื้อผ้า",
-    image: "https://images.unsplash.com/photo-1568252542512-9fe8cf4c8cae?w=800&q=80",
-  },
-  {
-    id: "prod_003",
-    name: "ลูกฟุตบอลฝึกซ้อมมาตรฐานโปร",
-    price: 850,
-    category: "อุปกรณ์",
-    image: "https://images.unsplash.com/photo-1614632537190-23e4146777db?w=800&q=80",
-  },
-  {
-    id: "prod_004",
-    name: "ผ้าพันคอเชียร์",
-    price: 250,
-    category: "ของที่ระลึก",
-    image: "https://images.unsplash.com/photo-1606132049618-5a484c207ab7?w=800&q=80",
-  },
-];
+import { DataService, Product } from "@/services/dataService";
 
 export default function ShopPage() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    DataService.getProducts().then((res) => {
+      setProducts(res || []);
+      setLoading(false);
+    });
+  }, []);
+
+  if (loading) return (
+    <div className="pt-32 flex justify-center text-muted-foreground text-sm animate-pulse">
+      กำลังดึงข้อมูลสินค้า...
+    </div>
+  );
+
   return (
     <div className="pt-16">
       {/* Header */}
@@ -46,29 +33,41 @@ export default function ShopPage() {
 
       {/* Product Grid */}
       <div className="max-w-7xl mx-auto px-6 pb-24">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
-          {products.map((p) => (
-            <Link
-              key={p.id}
-              href={`/shop/checkout?type=product&id=${p.id}&price=${p.price}&name=${encodeURIComponent(p.name)}`}
-              className="group block"
-            >
-              <div className="aspect-[3/4] overflow-hidden rounded-sm bg-muted mb-4">
-                <div
-                  className="w-full h-full bg-cover bg-center group-hover:scale-[1.03] transition-transform duration-500"
-                  style={{ backgroundImage: `url('${p.image}')` }}
-                />
-              </div>
-              <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-1">
-                {p.category}
-              </p>
-              <h3 className="text-sm font-medium text-foreground leading-snug mb-2 group-hover:text-primary transition-colors">
-                {p.name}
-              </h3>
-              <p className="text-sm font-semibold text-foreground">{p.price.toLocaleString()} ฿</p>
-            </Link>
-          ))}
-        </div>
+        {products.length === 0 ? (
+          <div className="py-20 border border-dashed border-border/60 rounded-sm text-center">
+            <p className="text-sm text-muted-foreground">ยังไม่มีสินค้าในร้านค้าขณะนี้</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
+            {products.map((p) => (
+              <Link
+                key={p.id}
+                href={`/shop/checkout?type=product&id=${p.id}&price=${p.price}&name=${encodeURIComponent(p.name)}`}
+                className="group block"
+              >
+                <div className="aspect-[3/4] overflow-hidden rounded-sm bg-muted mb-4">
+                  {p.image ? (
+                    <div
+                      className="w-full h-full bg-cover bg-center group-hover:scale-[1.03] transition-transform duration-500"
+                      style={{ backgroundImage: `url('${p.image}')` }}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-muted/50">
+                      <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">No Image</span>
+                    </div>
+                  )}
+                </div>
+                <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-1">
+                  {p.category}
+                </p>
+                <h3 className="text-sm font-medium text-foreground leading-snug mb-2 group-hover:text-primary transition-colors">
+                  {p.name}
+                </h3>
+                <p className="text-sm font-semibold text-foreground">{p.price.toLocaleString()} ฿</p>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
