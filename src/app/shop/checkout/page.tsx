@@ -2,12 +2,24 @@
 
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { UploadCloud, ArrowLeft, CheckCircle2, Loader2 } from "lucide-react";
+import { UploadCloud, ArrowLeft, CheckCircle2, Loader2, ShoppingCart } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { DataService } from "@/services/dataService";
 import { CldUploadWidget } from "next-cloudinary";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
-import { swal } from "@/lib/swal";
+import { Button, buttonVariants } from "@/components/ui/button";
+import Link from "next/link";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 
 function CheckoutForm() {
   const searchParams = useSearchParams();
@@ -25,112 +37,147 @@ function CheckoutForm() {
 
   if (type === "photo" && !isSignedIn) {
     return (
-      <div className="text-center py-24 max-w-sm mx-auto">
-        <h2 className="text-lg font-semibold text-foreground mb-3">ต้องเข้าสู่ระบบก่อน</h2>
-        <p className="text-sm text-muted-foreground mb-6">
-          กรุณาเข้าสู่ระบบบัญชี AM Tournament เพื่อซื้อภาพถ่ายความละเอียดสูง
-        </p>
-        <button
-          onClick={() => router.back()}
-          className="px-5 py-2.5 bg-foreground text-background text-sm font-semibold rounded-sm hover:opacity-85 transition-opacity"
-        >
-          ย้อนกลับ
-        </button>
+      <div className="flex items-center justify-center min-h-[70vh] px-6">
+        <Card className="w-full max-w-md text-center border-border/40 shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <CardHeader className="space-y-4 pt-10">
+            <div className="mx-auto w-14 h-14 rounded-full bg-muted flex items-center justify-center">
+              <ShoppingCart size={22} className="text-muted-foreground" strokeWidth={1.5} />
+            </div>
+            <CardTitle>ต้องเข้าสู่ระบบก่อน</CardTitle>
+            <CardDescription>
+              กรุณาเข้าสู่ระบบบัญชี AM Tournament เพื่อซื้อภาพถ่ายความละเอียดสูง ไร้ลายน้ำ
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3 pb-10">
+            <Link
+              href="/login"
+              className={cn(buttonVariants(), "w-full font-bold uppercase tracking-widest text-[11px]")}
+            >
+              เข้าสู่ระบบ
+            </Link>
+            <Button variant="ghost" onClick={() => router.back()} className="w-full gap-2">
+              <ArrowLeft size={16} /> ย้อนกลับ
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   if (done) {
     return (
-      <div className="text-center py-24 max-w-sm mx-auto">
-        <CheckCircle2 size={40} className="text-primary mx-auto mb-6" strokeWidth={1.5} />
-        <h2 className="text-xl font-semibold text-foreground mb-3">รับคำสั่งซื้อแล้ว</h2>
-        <p className="text-sm text-muted-foreground leading-relaxed mb-8">
-          ทีมงานได้รับสลิปของท่านเรียบร้อย ลิงก์ไฟล์ Digital จะถูกส่งไปยังอีเมลภายใน 24–48 ชั่วโมง
-        </p>
-        <button
-          onClick={() => router.push("/")}
-          className="px-6 py-3 bg-foreground text-background text-sm font-semibold rounded-sm hover:opacity-85 transition-opacity"
-        >
-          กลับหน้าแรก
-        </button>
+      <div className="flex items-center justify-center min-h-[70vh] px-6">
+        <Card className="w-full max-w-sm text-center border-border/40 shadow-lg animate-in fade-in zoom-in-95 duration-700">
+          <CardHeader className="space-y-4 pt-10">
+            <CheckCircle2 size={48} className="text-primary mx-auto" strokeWidth={1.5} />
+            <CardTitle className="text-2xl">รับคำสั่งซื้อแล้ว!</CardTitle>
+            <CardDescription className="text-sm leading-relaxed px-4">
+              ทีมงานได้รับสลิปการโอนเงินของท่านเรียบร้อย ลิงก์ไฟล์ Digital จะถูกส่งไปยังอีเมลภายใน <strong>24–48 ชั่วโมง</strong>
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pb-10">
+            <Button onClick={() => router.push("/")} className="w-full font-bold uppercase tracking-widest text-[11px]">
+              กลับหน้าแรก
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!slipUrl) return swal.error("กรุณาอัปโหลดสลิปโอนเงิน");
+    if (!slipUrl) {
+      toast.error("กรุณาอัปโหลดสลิปโอนเงินก่อนยืนยัน");
+      return;
+    }
     setSubmitting(true);
-    
+
     const success = await DataService.submitPaymentSlip(
-      { type, itemId, price, name, date: new Date().toISOString() }, 
+      { type, itemId, price, name, date: new Date().toISOString() },
       slipUrl
     );
 
     if (success) {
       setDone(true);
+      toast.success("ยืนยันการชำระเงินสำเร็จ!");
     } else {
-      swal.error("เกิดข้อผิดพลาดในการส่งข้อมูล", "กรุณาลองใหม่อีกครั้ง หรือติดต่อผู้ดูแลระบบ");
+      toast.error("เกิดข้อผิดพลาดในการส่งข้อมูล", {
+        description: "กรุณาลองใหม่อีกครั้ง หรือติดต่อผู้ดูแลระบบ",
+      });
     }
     setSubmitting(false);
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-6 pt-14 pb-24">
-      <button
+    <div className="max-w-5xl mx-auto px-6 pt-12 pb-32 animate-in fade-in duration-700">
+      <Button
+        variant="ghost"
         onClick={() => router.back()}
-        className="flex items-center gap-2 text-[13px] text-muted-foreground hover:text-foreground transition-colors mb-12"
+        className="gap-2 text-muted-foreground mb-10 -ml-2"
       >
-        <ArrowLeft size={16} strokeWidth={1.5} /> ย้อนกลับ
-      </button>
+        <ArrowLeft size={16} /> ย้อนกลับ
+      </Button>
 
-      <h1 className="text-xl font-semibold text-foreground mb-12">ยืนยันการชำระเงิน</h1>
+      <h1 className="text-3xl font-bold tracking-tight text-foreground mb-12">ยืนยันการชำระเงิน</h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-16">
-        {/* Summary */}
-        <div>
-          <p className="text-[11px] font-semibold tracking-widest uppercase text-muted-foreground mb-6">
-            สรุปคำสั่งซื้อ
-          </p>
-          <div className="pb-6 mb-6 border-b border-border/50">
-            <p className="text-[11px] text-primary uppercase tracking-wider font-semibold mb-2">{type}</p>
-            <h3 className="text-base font-medium text-foreground leading-snug mb-5">{name}</h3>
-            <p className="text-2xl font-semibold text-foreground">{price.toLocaleString()} ฿</p>
-          </div>
-          <p className="text-[12px] text-muted-foreground leading-relaxed">
-            สินค้าและไฟล์ดิจิทัลทุกชนิดไม่สามารถขอคืนเงินได้หลังชำระแล้ว กรุณาตรวจสอบรายการก่อนชำระ
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+        {/* Order Summary */}
+        <div className="space-y-6">
+          <p className="text-[11px] font-bold tracking-[0.3em] uppercase text-muted-foreground">Order Summary</p>
+          <Card className="border-border/40">
+            <CardContent className="p-6 space-y-6">
+              <div className="space-y-3">
+                <Badge variant="outline" className="text-[10px] uppercase tracking-widest text-primary border-primary/30 bg-primary/5 px-3 py-1">
+                  {type}
+                </Badge>
+                <h3 className="text-lg font-bold text-foreground leading-tight">{name}</h3>
+              </div>
+              <Separator className="bg-border/30" />
+              <div className="flex items-baseline justify-between">
+                <span className="text-sm text-muted-foreground font-medium">Total</span>
+                <span className="text-3xl font-black text-foreground">{price.toLocaleString()} <span className="text-lg font-bold">฿</span></span>
+              </div>
+            </CardContent>
+          </Card>
+          <p className="text-[11px] text-muted-foreground leading-relaxed border-l-2 border-border pl-4 opacity-70">
+            สินค้าและไฟล์ดิจิทัลทุกชนิดไม่สามารถขอคืนเงินได้หลังชำระแล้ว กรุณาตรวจสอบรายละเอียดก่อนทำการชำระเงิน
           </p>
         </div>
 
         {/* Payment */}
-        <div>
-          <p className="text-[11px] font-semibold tracking-widest uppercase text-muted-foreground mb-6">
-            โอนเงินผ่านพร้อมเพย์
-          </p>
+        <div className="space-y-6">
+          <p className="text-[11px] font-bold tracking-[0.3em] uppercase text-muted-foreground">PromptPay Payment</p>
 
-          <div className="flex items-start gap-5 mb-8 p-5 bg-card border border-border/50 rounded-sm">
-            <img
-              src="https://upload.wikimedia.org/wikipedia/commons/d/d0/QR_code_for_mobile_English_Wikipedia.svg"
-              alt="QR Code"
-              className="w-24 h-24 object-contain bg-white p-2 rounded-sm shrink-0"
-            />
-            <div>
-              <p className="text-[11px] text-muted-foreground mb-1">หมายเลขพร้อมเพย์</p>
-              <p className="text-lg font-semibold text-foreground tracking-widest font-mono mb-3">
-                081-234-5678
-              </p>
-              <p className="text-[11px] text-muted-foreground">ชื่อบัญชี: บจก. เอเอ็ม ทัวร์นาเมนต์</p>
-            </div>
-          </div>
+          <Card className="border-border/40">
+            <CardContent className="p-6">
+              <div className="flex items-start gap-5">
+                <img
+                  src="https://upload.wikimedia.org/wikipedia/commons/d/d0/QR_code_for_mobile_English_Wikipedia.svg"
+                  alt="QR Code PromptPay"
+                  className="w-24 h-24 object-contain bg-white p-2 rounded-sm shrink-0 border border-border/20"
+                />
+                <div className="space-y-2">
+                  <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">หมายเลขพร้อมเพย์</p>
+                  <p className="text-xl font-black text-foreground tracking-widest font-mono">081-234-5678</p>
+                  <p className="text-[11px] text-muted-foreground">ชื่อบัญชี: บจก. เอเอ็ม ทัวร์นาเมนต์</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-          <form onSubmit={handleSubmit}>
-            <p className="text-[13px] font-medium text-foreground mb-3">แนบสลิปโอนเงิน</p>
-            
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <p className="text-sm font-bold text-foreground">แนบสลิปโอนเงิน</p>
+
             <CldUploadWidget
               signatureEndpoint="/api/sign-cloudinary-params"
               onSuccess={(result: any) => {
                 setSlipUrl(result.info.secure_url);
+                toast.success("อัปโหลดสลิปสำเร็จ!");
+              }}
+              onClose={() => {
+                document.body.style.overflow = "auto";
+                document.documentElement.style.overflow = "auto";
               }}
               options={{
                 maxFiles: 1,
@@ -139,33 +186,45 @@ function CheckoutForm() {
               }}
             >
               {({ open }) => (
-                <div 
+                <div
                   onClick={() => open()}
-                  className="relative flex flex-col items-center justify-center border border-dashed border-border/60 rounded-sm p-8 cursor-pointer hover:bg-muted/20 transition-colors mb-6 overflow-hidden"
-                >
-                  <UploadCloud size={22} className={slipUrl ? "text-primary" : "text-muted-foreground"} strokeWidth={1.5} />
-                  <span className="text-[13px] text-muted-foreground mt-2">
-                    {slipUrl ? "อัปโหลดสลิปเรียบร้อย" : "คลิกเพื่ออัปโหลดสลิป (.jpg, .png)"}
-                  </span>
-                  {slipUrl && (
-                    <div className="absolute inset-0 bg-primary/5 border border-primary/20 pointer-events-none" />
+                  className={cn(
+                    "relative flex flex-col items-center justify-center border-2 border-dashed rounded-sm p-10 cursor-pointer transition-all duration-300",
+                    slipUrl
+                      ? "border-primary/40 bg-primary/5"
+                      : "border-border/50 bg-muted/10 hover:border-primary/40 hover:bg-primary/5"
                   )}
+                >
+                  <UploadCloud
+                    size={26}
+                    className={cn("mb-3 transition-colors", slipUrl ? "text-primary" : "text-muted-foreground")}
+                    strokeWidth={1.5}
+                  />
+                  <span className="text-sm font-medium text-center">
+                    {slipUrl ? (
+                      <span className="text-primary font-bold">✓ อัปโหลดสลิปเรียบร้อยแล้ว</span>
+                    ) : (
+                      <span className="text-muted-foreground">คลิกเพื่ออัปโหลดสลิป (.jpg, .png, .pdf)</span>
+                    )}
+                  </span>
                 </div>
               )}
             </CldUploadWidget>
 
-            <button
+            <Button
               type="submit"
               disabled={submitting || !slipUrl}
-              className="w-full py-3.5 bg-foreground text-background text-sm font-semibold rounded-sm hover:opacity-85 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full h-12 font-bold uppercase tracking-widest text-[11px] rounded-sm"
             >
               {submitting ? (
                 <>
-                  <Loader2 size={16} className="animate-spin" />
+                  <Loader2 size={16} className="animate-spin mr-2" />
                   กำลังดำเนินการ…
                 </>
-              ) : "ยืนยันการชำระเงิน"}
-            </button>
+              ) : (
+                "ยืนยันการชำระเงิน"
+              )}
+            </Button>
           </form>
         </div>
       </div>
@@ -178,8 +237,9 @@ export default function CheckoutPage() {
     <div className="min-h-screen bg-background pt-16">
       <Suspense
         fallback={
-          <div className="pt-32 flex justify-center text-sm text-muted-foreground">
-            กำลังโหลด...
+          <div className="pt-32 flex flex-col items-center gap-4 text-muted-foreground">
+            <Loader2 className="animate-spin text-primary" size={28} />
+            <p className="text-sm uppercase tracking-widest font-medium">กำลังโหลด...</p>
           </div>
         }
       >

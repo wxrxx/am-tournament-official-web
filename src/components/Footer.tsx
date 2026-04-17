@@ -2,63 +2,67 @@
 
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
+import { Separator } from "@/components/ui/separator";
 
 export default function Footer() {
   const { isSignedIn } = useAuth();
 
   return (
-    <footer className="border-t border-border/40 py-16 bg-background">
+    <footer className="border-t border-border/40 py-20 bg-card/30 backdrop-blur-sm animate-in fade-in duration-1000">
       <div className="max-w-7xl mx-auto px-6">
-        <div className="flex flex-col md:flex-row justify-between gap-12 mb-16">
+        <div className="flex flex-col md:flex-row justify-between gap-16 mb-20">
           {/* Brand */}
-          <div className="max-w-xs">
-            <div className="flex items-center gap-2.5 mb-5">
-              <span className="w-7 h-7 bg-primary rounded-sm flex items-center justify-center text-[11px] font-bold text-black">AM</span>
-              <span className="font-semibold text-sm tracking-widest uppercase text-foreground">AM Tournament</span>
+          <div className="max-w-sm space-y-6">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-primary rounded-sm flex items-center justify-center text-[12px] font-bold text-black leading-none">
+                AM
+              </div>
+              <span className="font-bold text-sm tracking-[0.2em] uppercase text-foreground">AM Tournament</span>
             </div>
             <p className="text-[13px] text-muted-foreground leading-relaxed">
-              ทัวร์นาเมนต์ฟุตบอลสมัครเล่นที่ยิ่งใหญ่ที่สุดของจังหวัดสตูล เราร่วมยกระดับวงการลูกหนังท้องถิ่นสู่มาตรฐานมืออาชีพ
+              สถาบันทัวร์นาเมนต์ฟุตบอลชั้นนำของจังหวัดสตูล มุ่งสู่ความเป็นเลิศด้วยมาตรฐานระดับสากล ผ่านการนำเสนอสื่อกีฬาที่ทันสมัยและการจัดการแข่งขันที่เป็นมืออาชีพ
             </p>
           </div>
 
-          {/* Links */}
-          <div className="grid grid-cols-2 gap-12">
-            <div>
-              <p className="text-[11px] font-semibold tracking-widest uppercase text-muted-foreground mb-5">ลีก</p>
-              <ul className="space-y-3">
+          {/* Links Grid */}
+          <div className="flex flex-wrap gap-x-20 gap-y-12">
+            <div className="space-y-6 min-w-[120px]">
+              <p className="text-[10px] font-bold tracking-[0.3em] uppercase text-primary">Competition</p>
+              <ul className="space-y-4">
                 {[
                   { name: "ตารางแข่งขัน", href: "/schedule" },
-                  { name: "รายชื่อทีม", href: "/teams" },
-                  { name: "ข่าวสาร", href: "/news" },
+                  { name: "สโมสรและรายชื่อทีม", href: "/teams" },
+                  { name: "ข่าวสารล่าสุด", href: "/news" },
+                  { name: "ผลการแข่งขันสด", href: "/results" },
                 ].map((l) => (
                   <li key={l.href}>
-                    <Link href={l.href} className="text-[13px] text-muted-foreground hover:text-foreground transition-colors">
+                    <Link href={l.href} className="text-[13px] text-muted-foreground hover:text-foreground transition-all hover:translate-x-1 inline-block">
                       {l.name}
                     </Link>
                   </li>
                 ))}
               </ul>
             </div>
-            <div>
-              <p className="text-[11px] font-semibold tracking-widest uppercase text-muted-foreground mb-5">บริการ</p>
-              <ul className="space-y-3">
+            <div className="space-y-6 min-w-[120px]">
+              <p className="text-[10px] font-bold tracking-[0.3em] uppercase text-primary">Services</p>
+              <ul className="space-y-4">
                 {[
-                  { name: "แกลเลอรี่รูป", href: "/gallery" },
-                  { name: "ร้านค้า", href: "/shop" },
-                  { name: "จองช่างภาพ", href: "/team-package" },
-                  { name: "ติดต่อเรา", href: "/about" },
+                  { name: "แกลเลอรี่รูปภาพ", href: "/gallery" },
+                  { name: "ร้านค้าทางการ", href: "/shop" },
+                  { name: "แพ็กเกจจองช่างภาพ", href: "/team-package" },
+                  { name: "เกี่ยวกับเรา", href: "/about" },
                 ].map((l) => (
                   <li key={l.href}>
-                    <Link href={l.href} className="text-[13px] text-muted-foreground hover:text-foreground transition-colors">
+                    <Link href={l.href} className="text-[13px] text-muted-foreground hover:text-foreground transition-all hover:translate-x-1 inline-block">
                       {l.name}
                     </Link>
                   </li>
                 ))}
                 {isSignedIn && (
                   <li>
-                    <Link href="/admin" className="text-[13px] text-primary font-medium hover:opacity-80 transition-opacity flex items-center gap-1.5">
-                      จัดการหลังบ้าน
-                      <span className="w-1 h-1 bg-primary rounded-full" />
+                    <Link href="/admin" className="text-[13px] text-primary font-bold hover:underline transition-all flex items-center gap-2">
+                       Control Panel
+                       <div className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse" />
                     </Link>
                   </li>
                 )}
@@ -67,16 +71,18 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="pt-8 border-t border-border/40 flex flex-col md:flex-row justify-between items-center gap-3">
-          <p className="text-[12px] text-muted-foreground">
-            &copy; {new Date().getFullYear()} AM Tournament — สตูล, ประเทศไทย
+        <Separator className="bg-border/20 mb-10" />
+
+        <div className="flex flex-col md:flex-row justify-between items-center gap-6 text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
+          <p>
+            &copy; {new Date().getFullYear()} AM Tournament. All rights defined.
           </p>
-          <div className="flex gap-6">
-            <Link href="/privacy" className="text-[12px] text-muted-foreground hover:text-foreground transition-colors">
-              นโยบายความเป็นส่วนตัว
+          <div className="flex gap-8">
+            <Link href="/privacy" className="hover:text-foreground transition-colors">
+              Privacy Policy
             </Link>
-            <Link href="/terms" className="text-[12px] text-muted-foreground hover:text-foreground transition-colors">
-              เงื่อนไขการใช้งาน
+            <Link href="/terms" className="hover:text-foreground transition-colors">
+              Terms of Service
             </Link>
           </div>
         </div>

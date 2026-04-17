@@ -3,10 +3,38 @@
 import { useState, useEffect } from "react";
 import { DataService, GalleryAlbum } from "@/services/dataService";
 import { isFirebaseConfigured } from "@/lib/firebase";
-import { Plus, Trash2, Image as ImageIcon, ExternalLink, Shield, X, Upload, Loader2 } from "lucide-react";
+import { Plus, Trash2, Image as ImageIcon, ExternalLink, Shield, Upload, Loader2 } from "lucide-react";
 import { CldUploadWidget, CldImage } from "next-cloudinary";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { buttonVariants } from "@/components/ui/button";
 
-import { swal } from "@/lib/swal";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function AdminGalleryPage() {
   const [albums, setAlbums] = useState<GalleryAlbum[]>([]);
@@ -14,7 +42,6 @@ export default function AdminGalleryPage() {
   const [isAdding, setIsAdding] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // New Album Form State
   const [newAlbum, setNewAlbum] = useState({
     title: "",
     date: new Date().toISOString().split("T")[0],
@@ -36,26 +63,27 @@ export default function AdminGalleryPage() {
   };
 
   const handleDelete = async (id: string) => {
-    const res = await swal.confirm("ยืนยันการลบอัลบั้มนี้?", "การดำเนินการนี้ไม่สามารถย้อนกลับได้");
-    if (res.isConfirmed) {
-      await DataService.deleteAlbum(id);
+    const success = await DataService.deleteAlbum(id);
+    if (success) {
       setAlbums(albums.filter(a => a.albumId !== id));
-      swal.success("ลบอัลบั้มสำเร็จ");
+      toast.success("ลบอัลบั้มเรียบร้อยแล้ว");
+    } else {
+      toast.error("เกิดข้อผิดพลาดในการลบอัลบั้ม");
     }
   };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newAlbum.title || !coverUrl) {
-      swal.error("ข้อมูลไม่ครบถ้วน", "กรุณากรอกข้อมูลและอัปโหลดรูปหน้าปกให้ครบถ้วน");
+      toast.error("กรุณากรอกข้อมูลให้ครบถ้วน");
       return;
     }
 
     setIsSaving(true);
-    const success = await DataService.createAlbum({ 
-      ...newAlbum, 
+    const success = await DataService.createAlbum({
+      ...newAlbum,
       coverUrl,
-      photos: [] 
+      photos: []
     });
 
     if (success) {
@@ -63,94 +91,88 @@ export default function AdminGalleryPage() {
       setNewAlbum({ title: "", date: new Date().toISOString().split("T")[0], isProtected: false, password: "" });
       setCoverUrl(null);
       loadAlbums();
-      swal.success("สร้างอัลบั้มสำเร็จ");
+      toast.success("สร้างอัลบั้มใหม่สำเร็จ");
     } else {
-      swal.error("เกิดข้อผิดพลาด", "ไม่สามารถบันทึกข้อมูลได้ในขณะนี้");
+      toast.error("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
     }
     setIsSaving(false);
   };
 
   return (
-    <div className="animate-in fade-in duration-700">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
+    <div className="space-y-8 animate-in fade-in duration-700">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground mb-2">จัดการแกลเลอรี่</h1>
-          <p className="text-sm text-muted-foreground">สร้าง ลบ และจัดการรูปภาพการแข่งขัน</p>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">จัดการแกลเลอรี่</h1>
+          <p className="text-muted-foreground">สร้าง ลบ และจัดการอัลบั้มรูปภาพการแข่งขันระดับพรีเมียม</p>
         </div>
-        <button 
-          onClick={() => setIsAdding(true)}
-          className="flex items-center gap-2 px-6 py-3 bg-primary text-black text-sm font-semibold rounded-sm hover:bg-yellow-300 transition-colors"
-        >
-          <Plus size={18} />
-          สร้างอัลบั้มใหม่
-        </button>
-      </div>
 
-      {!isFirebaseConfigured && (
-        <div className="mb-8 p-4 bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 text-xs rounded-sm">
-          <strong>Mode Local:</strong> Firebase ยังไม่ได้ติดตั้ง ข้อมูลจะถูกดึงจากไฟล์ JSON
-        </div>
-      )}
-
-      {isAdding && (
-        <div className="fixed inset-0 z-[100] bg-background/80 backdrop-blur-md flex items-center justify-center p-6">
-          <div className="bg-card border border-border/40 w-full max-w-xl p-8 rounded-sm shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className="flex justify-between items-center mb-8">
-              <h2 className="text-lg font-semibold uppercase tracking-widest text-foreground">สร้างอัลบั้มใหม่</h2>
-              <button onClick={() => setIsAdding(false)} className="text-muted-foreground hover:text-foreground">
-                <X size={20} />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreate} className="space-y-6">
-              <div>
-                <label className="block text-[10px] uppercase tracking-widest text-muted-foreground font-medium mb-2">ชื่อการแข่งขัน / หัวข้อ</label>
-                <input 
-                  type="text" 
+        <Dialog open={isAdding} onOpenChange={setIsAdding}>
+          {/* DialogTrigger styled directly with buttonVariants — Base UI has no asChild */}
+          <DialogTrigger
+            className={cn(
+              buttonVariants({ size: "sm" }),
+              "gap-2 font-bold uppercase tracking-widest text-[11px] rounded-sm"
+            )}
+          >
+            <Plus size={16} />
+            สร้างอัลบั้มใหม่
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle className="uppercase tracking-widest text-sm font-bold">สร้างอัลบั้มใหม่</DialogTitle>
+              <DialogDescription>
+                ตั้งค่าอัลบั้มรูปภาพและอัปโหลดหน้าปกเพื่อแสดงผลบนหน้าเว็บ
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleCreate} className="space-y-6 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="title" className="text-[11px] uppercase tracking-widest font-bold text-muted-foreground">ชื่อการแข่งขัน / หัวข้อ</Label>
+                <Input
+                  id="title"
                   value={newAlbum.title}
                   onChange={e => setNewAlbum({...newAlbum, title: e.target.value})}
-                  className="w-full bg-muted/30 border border-border/30 rounded-sm px-4 py-3 text-sm focus:outline-none focus:border-primary"
                   placeholder="เช่น Satun FC vs City Boys"
+                  className="rounded-sm"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] uppercase tracking-widest text-muted-foreground font-medium mb-2">วันที่</label>
-                  <input 
-                    type="date" 
+                <div className="space-y-2">
+                  <Label htmlFor="date" className="text-[11px] uppercase tracking-widest font-bold text-muted-foreground">วันที่</Label>
+                  <Input
+                    id="date"
+                    type="date"
                     value={newAlbum.date}
                     onChange={e => setNewAlbum({...newAlbum, date: e.target.value})}
-                    className="w-full bg-muted/30 border border-border/30 rounded-sm px-4 py-3 text-sm focus:outline-none focus:border-primary"
+                    className="rounded-sm"
                   />
                 </div>
-                <div>
-                  <label className="block text-[10px] uppercase tracking-widest text-muted-foreground font-medium mb-2">รหัสผ่าน (ถ้ามี)</label>
-                  <input 
-                    type="text" 
+                <div className="space-y-2">
+                  <Label htmlFor="password" className="text-[11px] uppercase tracking-widest font-bold text-muted-foreground">รหัสผ่าน (ถ้ามี)</Label>
+                  <Input
+                    id="password"
+                    type="text"
                     value={newAlbum.password}
                     onChange={e => setNewAlbum({...newAlbum, password: e.target.value, isProtected: !!e.target.value})}
-                    className="w-full bg-muted/30 border border-border/30 rounded-sm px-4 py-3 text-sm focus:outline-none focus:border-primary"
                     placeholder="ปล่อยว่างหากไม่มี"
+                    className="rounded-sm"
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-[10px] uppercase tracking-widest text-muted-foreground font-medium mb-2">รูปหน้าปก (Cloudinary)</label>
+              <div className="space-y-2">
+                <Label className="text-[11px] uppercase tracking-widest font-bold text-muted-foreground">รูปหน้าปก (Cloudinary)</Label>
                 <CldUploadWidget
                   signatureEndpoint="/api/sign-cloudinary-params"
-                  onSuccess={(result: any) => {
-                    setCoverUrl(result.info.secure_url);
+                  onSuccess={(result: any) => { setCoverUrl(result.info.secure_url); }}
+                  onClose={() => {
+                    document.body.style.overflow = "auto";
+                    document.documentElement.style.overflow = "auto";
                   }}
-                  options={{
-                    maxFiles: 1,
-                    folder: "albums",
-                    clientAllowedFormats: ["jpg", "png", "webp", "avif"],
-                  }}
+                  options={{ maxFiles: 1, folder: "albums", clientAllowedFormats: ["jpg", "png", "webp", "avif"] }}
                 >
                   {({ open }) => (
-                    <div 
+                    <div
                       onClick={() => open()}
                       className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-border/30 rounded-sm cursor-pointer hover:border-primary/50 transition-colors bg-muted/10 overflow-hidden relative"
                     >
@@ -159,7 +181,7 @@ export default function AdminGalleryPage() {
                       ) : (
                         <div className="flex flex-col items-center gap-2">
                           <Upload size={24} className="text-muted-foreground" />
-                          <span className="text-[11px] text-muted-foreground text-center px-4">คลิกเพื่ออัปโหลดรูปหน้าปกแบบ Signed Upload</span>
+                          <span className="text-[11px] text-muted-foreground text-center px-4">คลิกเพื่ออัปโหลดรูปหน้าปก (Signed)</span>
                         </div>
                       )}
                     </div>
@@ -167,38 +189,34 @@ export default function AdminGalleryPage() {
                 </CldUploadWidget>
               </div>
 
-              <button 
-                type="submit" 
-                disabled={isSaving || !coverUrl}
-                className="w-full py-4 bg-primary text-black font-bold text-sm rounded-sm hover:bg-yellow-300 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSaving ? (
-                  <>
-                    <Loader2 size={18} className="animate-spin" />
-                    กำลังบันทึกอัลบั้ม...
-                  </>
-                ) : (
-                  "สร้างอัลบั้มทันที"
-                )}
-              </button>
+              <DialogFooter>
+                <Button type="submit" disabled={isSaving || !coverUrl} className="w-full font-bold uppercase tracking-widest text-[11px]">
+                  {isSaving ? <Loader2 size={16} className="animate-spin" /> : "บันทึกอัลบั้มทันที"}
+                </Button>
+              </DialogFooter>
             </form>
-          </div>
-        </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {!isFirebaseConfigured && (
+        <Badge variant="outline" className="bg-yellow-500/10 text-yellow-500 border-yellow-500/20 py-1 px-4">
+          <strong>Mode Local:</strong> โปรดตรวจสอบการตั้งค่า Firebase
+        </Badge>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {isLoading ? (
           Array(3).fill(0).map((_, i) => (
-            <div key={i} className="bg-card h-48 border border-border/40 rounded-sm animate-pulse" />
+            <Skeleton key={i} className="aspect-video w-full rounded-sm" />
           ))
-        ) : (
+        ) : albums.length > 0 ? (
           albums.map(album => (
-            <div key={album.albumId} className="group bg-card border border-border/40 rounded-sm overflow-hidden flex flex-col">
-              {/* Cover Preview */}
+            <Card key={album.albumId} className="group overflow-hidden border-border/40 shadow-sm flex flex-col">
               <div className="aspect-video relative overflow-hidden bg-muted">
                 {album.coverUrl.includes("cloudinary") ? (
-                  <CldImage 
-                    src={album.coverUrl} 
+                  <CldImage
+                    src={album.coverUrl}
                     alt={album.title}
                     width={600}
                     height={340}
@@ -206,52 +224,74 @@ export default function AdminGalleryPage() {
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                 ) : (
-                  <img 
-                    src={album.coverUrl} 
+                  <img
+                    src={album.coverUrl}
                     alt={album.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                 )}
-                {album.isProtected && (
-                  <div className="absolute top-3 left-3 bg-background/80 backdrop-blur-sm p-1.5 rounded-sm">
-                    <Shield size={12} className="text-primary" />
-                  </div>
-                )}
-              </div>
-
-              {/* Content */}
-              <div className="p-5 flex-1 flex flex-col">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-2 font-medium">
-                  {album.date}
-                </p>
-                <h3 className="text-sm font-semibold text-foreground mb-4 line-clamp-1">{album.title}</h3>
-                
-                <div className="mt-auto flex items-center justify-between border-t border-border/30 pt-4">
-                  <a href={`/gallery/${album.albumId}`} target="_blank" className="text-[11px] text-muted-foreground hover:text-primary flex items-center gap-1.5 transition-colors">
-                    <ExternalLink size={12} />
-                    ดูหน้าเว็บทบทวน
-                  </a>
-                  <button 
-                    onClick={() => handleDelete(album.albumId)}
-                    className="text-[11px] text-red-500 hover:text-red-600 flex items-center gap-1.5 transition-colors"
-                  >
-                    <Trash2 size={12} />
-                    ลบอัลบั้ม
-                  </button>
+                <div className="absolute top-3 left-3 flex gap-2">
+                  {album.isProtected && (
+                    <Badge className="bg-background/80 backdrop-blur-sm px-1.5 h-6 text-primary border-none">
+                      <Shield size={12} />
+                    </Badge>
+                  )}
+                  <Badge className="bg-background/80 backdrop-blur-sm px-1.5 h-6 text-foreground border-none font-bold text-[10px]">
+                    {album.photos?.length || 0} PICS
+                  </Badge>
                 </div>
               </div>
-            </div>
-          ))
-        )}
-      </div>
 
-      <div className="mt-16 p-8 border border-dashed border-border rounded-lg bg-muted/20 text-center">
-        <p className="text-sm text-muted-foreground italic">
-          // Cloudinary Media Integration Active //
-        </p>
+              <CardContent className="p-5 flex-1">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1.5 font-bold">{album.date}</p>
+                <h3 className="text-sm font-bold text-foreground line-clamp-1">{album.title}</h3>
+              </CardContent>
+
+              <CardFooter className="px-5 py-4 border-t border-border/30 flex items-center justify-between">
+                <a
+                  href={`/gallery/${album.albumId}`}
+                  target="_blank"
+                  className={cn(
+                    buttonVariants({ variant: "link", size: "sm" }),
+                    "h-auto p-0 text-[11px] text-muted-foreground hover:text-primary gap-1.5"
+                  )}
+                >
+                  <ExternalLink size={12} />
+                  View Public
+                </a>
+
+                <AlertDialog>
+                  <AlertDialogTrigger
+                    className="text-[11px] text-red-500 hover:text-red-600 flex items-center gap-1.5 transition-colors bg-transparent border-none cursor-pointer font-medium"
+                  >
+                    <Trash2 size={12} />
+                    Delete
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>ยืนยันการลบอัลบั้ม?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        การลบอัลบั้ม "{album.title}" จะทำให้รูปภาพทั้งหมดหายไปจากหน้าเว็บ และไม่สามารถกู้คืนได้
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => handleDelete(album.albumId)} variant="destructive">
+                        ลบข้อมูลถาวร
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </CardFooter>
+            </Card>
+          ))
+        ) : (
+          <div className="col-span-full py-24 text-center border-2 border-dashed border-border/40 rounded-sm">
+            <ImageIcon className="mx-auto text-muted-foreground mb-4" size={32} strokeWidth={1} />
+            <p className="text-sm text-muted-foreground italic">ยังไม่มีอัลบั้มในแกลเลอรี่</p>
+          </div>
+        )}
       </div>
     </div>
   );
 }
-
-

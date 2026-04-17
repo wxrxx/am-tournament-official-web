@@ -1,15 +1,27 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Users, Image as ImageIcon, ShoppingBag, CreditCard, TrendingUp, Loader2 } from "lucide-react";
+import { Users, Image as ImageIcon, ShoppingBag, CreditCard, TrendingUp, Loader2, ArrowRight } from "lucide-react";
 import { DataService } from "@/services/dataService";
 import { isFirebaseConfigured } from "@/lib/firebase";
+import Link from "next/link";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
+import { Button, buttonVariants } from "@/components/ui/button";
 
 export default function AdminDashboard() {
   const [statsData, setStatsData] = useState({
     images: 0,
     orders: 0,
-    teams: 12, // Still mock or can fetch later
+    teams: 0,
     revenue: 0,
   });
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
@@ -20,9 +32,10 @@ export default function AdminDashboard() {
     async function loadDashboardData() {
       setIsLoading(true);
       try {
-        const [albums, orders] = await Promise.all([
+        const [albums, orders, teamsList] = await Promise.all([
           DataService.getGalleryAlbums(),
-          DataService.getOrders(5)
+          DataService.getOrders(5),
+          DataService.getTeams()
         ]);
 
         const totalImages = albums.reduce((sum, album) => sum + (album.photos?.length || 0), 0);
@@ -33,7 +46,7 @@ export default function AdminDashboard() {
         setStatsData({
           images: totalImages,
           orders: orders.length,
-          teams: 12,
+          teams: teamsList ? teamsList.length : 0,
           revenue: totalRevenue
         });
         setRecentOrders(orders);
@@ -48,113 +61,152 @@ export default function AdminDashboard() {
   }, []);
 
   const stats = [
-    { label: "จำนวนรูปภาพ", value: statsData.images.toLocaleString(), icon: ImageIcon, color: "text-blue-500", bg: "bg-blue-500/10" },
-    { label: "รายการสั่งซื้อ", value: statsData.orders.toLocaleString(), icon: CreditCard, color: "text-emerald-500", bg: "bg-emerald-500/10" },
-    { label: "สมาชิกทีม", value: `${statsData.teams} ทีม`, icon: Users, color: "text-cyan-500", bg: "bg-cyan-500/10" },
-    { label: "รายได้รวม (Confirmed)", value: `฿${statsData.revenue.toLocaleString()}`, icon: TrendingUp, color: "text-primary", bg: "bg-primary/10" },
+    { label: "จำนวนรูปภาพรวม", value: statsData.images.toLocaleString(), icon: ImageIcon, color: "text-blue-500", bg: "bg-blue-500/10" },
+    { label: "รายการสั่งซื้อทั้งหมด", value: statsData.orders.toLocaleString(), icon: CreditCard, color: "text-emerald-500", bg: "bg-emerald-500/10" },
+    { label: "สมาชิกทีมทางการ", value: `${statsData.teams} ทีม`, icon: Users, color: "text-cyan-500", bg: "bg-cyan-500/10" },
+    { label: "รายได้ที่ได้รับการยืนยัน", value: `฿${statsData.revenue.toLocaleString()}`, icon: TrendingUp, color: "text-primary", bg: "bg-primary/10" },
   ];
 
   return (
-    <div className="animate-in fade-in duration-700">
-      <div className="flex justify-between items-start mb-10">
+    <div className="space-y-8 animate-in fade-in duration-700">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground mb-2">แผงควบคุมระบบ (Dashboard)</h1>
-          <p className="text-sm text-muted-foreground">สรุปข้อมูลภาพรวมของ AM Tournament ฤดูกาล 2026</p>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">แผงควบคุมระบบ</h1>
+          <p className="text-muted-foreground">สรุปข้อมูลภาพรวมของ AM Tournament ฤดูกาล 2026</p>
         </div>
         {isFirebaseConfigured && (
-          <div className="flex items-center gap-2 px-3 py-1 bg-emerald-500/10 text-emerald-500 text-[10px] font-bold rounded-full border border-emerald-500/20">
+          <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 gap-1.5 py-1 px-4 text-xs font-bold">
             <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
             LIVE MODE
-          </div>
+          </Badge>
         )}
       </div>
 
       {isLoading ? (
-        <div className="h-64 flex flex-col items-center justify-center gap-4 border border-border/20 rounded-sm bg-card/50">
-          <Loader2 className="animate-spin text-primary" size={32} />
-          <p className="text-sm text-muted-foreground uppercase tracking-widest">กำลังดึงข้อมูลเรียลไทม์...</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {Array(4).fill(0).map((_, i) => (
+            <Skeleton key={i} className="h-32 w-full rounded-sm" />
+          ))}
         </div>
       ) : (
         <>
           {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {stats.map((stat, i) => {
               const Icon = stat.icon;
               return (
-                <div key={i} className="bg-card border border-border/40 p-6 rounded-sm">
-                  <div className="flex items-center justify-between mb-4">
+                <Card key={i} className="border-border/40 shadow-sm overflow-hidden">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                      {stat.label}
+                    </CardTitle>
                     <div className={`p-2 rounded-sm ${stat.bg}`}>
-                      <Icon size={20} className={stat.color} />
+                      <Icon size={16} className={stat.color} />
                     </div>
-                    <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-medium">รวม</span>
-                  </div>
-                  <p className="text-2xl font-bold text-foreground mb-1">{stat.value}</p>
-                  <p className="text-xs text-muted-foreground">{stat.label}</p>
-                </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{stat.value}</div>
+                    <p className="text-[10px] text-muted-foreground mt-1 uppercase tracking-tighter">
+                      Updated just now
+                    </p>
+                  </CardContent>
+                </Card>
               );
             })}
           </div>
 
           {/* Recent Activity */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className="bg-card border border-border/40 rounded-sm p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-sm font-semibold text-foreground uppercase tracking-widest">อัลบั้มล่าสุด</h2>
-                <a href="/admin/gallery" className="text-[11px] text-primary hover:underline">ดูทั้งหมด</a>
-              </div>
-              <div className="space-y-4">
-                {recentAlbums.length > 0 ? recentAlbums.map((m, i) => (
-                  <div key={i} className="flex items-center justify-between p-3 border border-border/30 rounded-sm text-sm">
-                    <span className="font-medium text-foreground">{m.title}</span>
-                    <div className="flex items-center gap-4">
-                      <span className="text-[10px] text-muted-foreground">{m.date}</span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <Card className="lg:col-span-1 border-border/40">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                <div>
+                  <CardTitle className="text-sm font-bold uppercase tracking-widest">อัลบั้มล่าสุด</CardTitle>
+                  <CardDescription className="text-xs mt-1">แกลเลอรี่อัพเดทล่าสุด</CardDescription>
+                </div>
+                <Link
+                  href="/admin/gallery"
+                  className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "h-8 text-[11px] text-primary")}
+                >
+                  ดูทั้งหมด
+                </Link>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <div className="space-y-4">
+                  {recentAlbums.length > 0 ? recentAlbums.map((m, i) => (
+                    <div key={i} className="flex items-center justify-between group">
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium leading-none group-hover:text-primary transition-colors cursor-pointer">{m.title}</p>
+                        <p className="text-[10px] text-muted-foreground">{m.date}</p>
+                      </div>
+                      <Badge variant="secondary" className="text-[10px]">
                         {m.photos?.length || 0} รูป
-                      </span>
+                      </Badge>
                     </div>
-                  </div>
-                )) : (
-                  <p className="text-center py-10 text-xs text-muted-foreground italic">ไม่มีข้อมูลอัลบั้ม</p>
-                )}
-              </div>
-            </div>
+                  )) : (
+                    <p className="text-center py-10 text-xs text-muted-foreground italic">ไม่มีข้อมูลอัลบั้ม</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
 
-            <div className="bg-card border border-border/40 rounded-sm p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-sm font-semibold text-foreground uppercase tracking-widest">ออเดอร์ล่าสุด</h2>
-                <a href="/admin/orders" className="text-[11px] text-primary hover:underline">ดูทั้งหมด</a>
-              </div>
-              <div className="space-y-4">
-                {recentOrders.length > 0 ? recentOrders.map((o, i) => (
-                  <div key={i} className="flex items-center justify-between p-3 border border-border/30 rounded-sm text-sm">
-                    <div>
-                      <p className="font-medium text-foreground">{o.item || "ไม่มีชื่อสินค้า"}</p>
-                      <p className="text-[10px] text-muted-foreground">โดย {o.user || "ผู้ใช้ทั่วไป"}</p>
+            <Card className="lg:col-span-2 border-border/40">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                <div>
+                  <CardTitle className="text-sm font-bold uppercase tracking-widest">ออเดอร์ล่าสุด</CardTitle>
+                  <CardDescription className="text-xs mt-1">รายการสั่งซื้อภาพและสินค้า</CardDescription>
+                </div>
+                <Link
+                  href="/admin/orders"
+                  className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "h-8 text-[11px] text-primary")}
+                >
+                  ดูทั้งหมด
+                </Link>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <div className="space-y-6">
+                  {recentOrders.length > 0 ? recentOrders.map((o, i) => (
+                    <div key={i} className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                         <div className="w-9 h-9 rounded-sm bg-muted flex items-center justify-center text-muted-foreground">
+                            <ShoppingBag size={18} />
+                         </div>
+                         <div>
+                            <p className="text-sm font-medium leading-none">{o.name || "ไม่มีชื่อสินค้า"}</p>
+                            <p className="text-xs text-muted-foreground mt-1">โดย {o.user || "ผู้ใช้ทั่วไป"}</p>
+                         </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold">฿{(Number(o.price) || 0).toLocaleString()}</p>
+                        <Badge variant={o.status === "Confirmed" ? "default" : "outline"} 
+                          className={`text-[9px] h-5 mt-1 ${o.status === "Confirmed" ? "bg-emerald-500 text-white" : "border-yellow-500/50 text-yellow-600"}`}>
+                          {o.status === "Confirmed" ? "ยืนยันแล้ว" : "รอดำเนินการ"}
+                        </Badge>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-bold text-foreground">฿{(Number(o.price) || 0).toLocaleString()}</p>
-                      <p className={`text-[9px] uppercase font-bold ${o.status === "Confirmed" ? "text-emerald-500" : "text-yellow-500"}`}>
-                        {o.status === "Confirmed" ? "ยืนยันแล้ว" : "รอดำเนินการ"}
-                      </p>
-                    </div>
-                  </div>
-                )) : (
-                  <p className="text-center py-10 text-xs text-muted-foreground italic">ไม่มีรายการสั่งซื้อ</p>
-                )}
-              </div>
-            </div>
+                  )) : (
+                    <p className="text-center py-10 text-xs text-muted-foreground italic">ไม่มีรายการสั่งซื้อ</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </>
       )}
       
-      <div className="mt-12 p-6 border border-primary/20 bg-primary/5 rounded-sm">
-        <p className="text-xs text-muted-foreground leading-relaxed">
-          <span className="font-bold text-primary mr-2">SYSTEM STATUS:</span> 
+      <div className="p-6 border border-primary/20 bg-primary/5 rounded-sm flex items-start gap-4">
+        <div className="p-2 bg-primary/10 rounded-sm">
+           <ImageIcon size={16} className="text-primary" />
+        </div>
+        <p className="text-xs text-muted-foreground leading-relaxed flex-1">
+          <span className="font-bold text-primary mr-2 uppercase tracking-widest text-[10px]">System Status:</span> 
           ขณะนี้ระบบกำลังเชื่อมต่อกับ **{isFirebaseConfigured ? "🔥 Google Firebase" : "📁 Local Storage"}** 
-          {isFirebaseConfigured ? " ข้อมูลทั้งหมดถูกดึงและบันทึกแบบเรียลไทม์" : " ข้อมูลที่คุณเห็นเป็นเพียงตัวอย่าง (Read-Only)"}
+          {isFirebaseConfigured ? " ข้อมูลทั้งหมดถูกดึงและบันทึกแบบเรียลไทม์ผ่าน API ชุดใหม่" : " ข้อมูลที่คุณเห็นเป็นเพียงตัวอย่าง (Read-Only) กรุณาตรวจสอบการตั้งค่า Environment Variables"}
         </p>
+        <Button variant="link" className="text-[10px] h-auto p-0 text-primary">
+           Backend Docs <ArrowRight size={10} className="ml-1" />
+        </Button>
       </div>
     </div>
   );
 }
-

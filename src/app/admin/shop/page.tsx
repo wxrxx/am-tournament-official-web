@@ -1,11 +1,45 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Edit2, Trash2, Package, Tag, Layers, Loader2, X } from "lucide-react";
+import { Plus, Edit2, Trash2, Tag, Layers, Loader2 } from "lucide-react";
 import { DataService, Product } from "@/services/dataService";
 import { isFirebaseConfigured } from "@/lib/firebase";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { buttonVariants } from "@/components/ui/button";
 
-import { swal } from "@/lib/swal";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 
 export default function AdminShopPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -13,7 +47,6 @@ export default function AdminShopPage() {
   const [isAdding, setIsAdding] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // New Product State
   const [newProduct, setNewProduct] = useState({
     name: "",
     price: 0,
@@ -33,18 +66,19 @@ export default function AdminShopPage() {
   };
 
   const handleDelete = async (id: string) => {
-    const res = await swal.confirm("ลบสินค้านี้ใช่หรือไม่?", "การดำเนินการนี้ไม่สามารถย้อนกลับได้");
-    if (res.isConfirmed) {
-      await DataService.deleteProduct(id);
+    const success = await DataService.deleteProduct(id);
+    if (success) {
       setProducts(products.filter(p => p.id !== id));
-      swal.success("ลบสินค้าสำเร็จ");
+      toast.success("ลบสินค้าเรียบร้อยแล้ว");
+    } else {
+      toast.error("เกิดข้อผิดพลาดในการลบสินค้า");
     }
   };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newProduct.name || newProduct.price <= 0) {
-      swal.error("กรุณากรอกข้อมูลให้ครบถ้วน");
+      toast.error("กรุณากรอกข้อมูลให้ครบถ้วน");
       return;
     }
 
@@ -54,168 +88,185 @@ export default function AdminShopPage() {
       setIsAdding(false);
       setNewProduct({ name: "", price: 0, stock: 0, category: "เสื้อผ้า" });
       loadProducts();
-      swal.success("สร้างสินค้าสำเร็จ");
+      toast.success("เพิ่มสินค้าใหม่สำเร็จ");
     } else {
-      swal.error("เกิดข้อผิดพลาดในการบันทึก");
+      toast.error("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
     }
     setIsSaving(false);
   };
 
   return (
-    <div className="animate-in fade-in duration-700">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
+    <div className="space-y-8 animate-in fade-in duration-700">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground mb-2">จัดการร้านค้า</h1>
-          <p className="text-sm text-muted-foreground">จัดการข้อมูลสินค้า สต็อก และหมวดหมู่</p>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">จัดการร้านค้า</h1>
+          <p className="text-muted-foreground">จัดการข้อมูลสินค้า สต็อก และหมวดหมู่สินค้าพรีเมียม</p>
         </div>
-        <button 
-          onClick={() => setIsAdding(true)}
-          className="flex items-center gap-2 px-6 py-3 bg-primary text-black text-sm font-semibold rounded-sm hover:bg-yellow-300 transition-colors"
-        >
-          <Plus size={18} />
-          เพิ่มสินค้าใหม่
-        </button>
-      </div>
 
-      {!isFirebaseConfigured && (
-        <div className="mb-6 p-4 bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 text-xs rounded-sm">
-          <strong>Mode Local:</strong> โปรดตั้งค่า Firebase เพื่อบันทึกข้อมูลจริง
-        </div>
-      )}
-
-      {isAdding && (
-        <div className="fixed inset-0 z-[100] bg-background/80 backdrop-blur-md flex items-center justify-center p-6">
-          <div className="bg-card border border-border/40 w-full max-w-md p-8 rounded-sm shadow-2xl">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-lg font-semibold uppercase tracking-widest text-foreground">เพิ่มสินค้าใหม่</h2>
-              <button onClick={() => setIsAdding(false)} className="text-muted-foreground hover:text-foreground">
-                <X size={20} />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreate} className="space-y-4">
-              <div>
-                <label className="block text-[10px] uppercase tracking-widest mb-2">ชื่อสินค้า</label>
-                <input 
-                  type="text" 
+        <Dialog open={isAdding} onOpenChange={setIsAdding}>
+          {/* Use DialogTrigger with buttonVariants styling directly — no asChild */}
+          <DialogTrigger
+            className={cn(
+              buttonVariants({ size: "sm" }),
+              "gap-2 font-bold uppercase tracking-widest text-[11px] rounded-sm"
+            )}
+          >
+            <Plus size={16} />
+            เพิ่มสินค้าใหม่
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle className="uppercase tracking-widest text-sm font-bold">เพิ่มสินค้าใหม่</DialogTitle>
+              <DialogDescription>
+                กรอกรายละเอียดสินค้าที่คุณต้องการเพิ่มเข้าสู่ระบบร้านค้า
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleCreate} className="space-y-6 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="name" className="text-[11px] uppercase tracking-widest font-bold text-muted-foreground">ชื่อสินค้า</Label>
+                <Input
+                  id="name"
                   value={newProduct.name}
                   onChange={e => setNewProduct({...newProduct, name: e.target.value})}
-                  className="w-full bg-muted/30 border border-border/30 rounded-sm px-4 py-2 text-sm focus:outline-none focus:border-primary"
                   placeholder="เช่น Official Jersey 2026"
+                  className="rounded-sm"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] uppercase tracking-widest mb-2">ราคา (บาท)</label>
-                  <input 
-                    type="number" 
+                <div className="space-y-2">
+                  <Label htmlFor="price" className="text-[11px] uppercase tracking-widest font-bold text-muted-foreground">ราคา (บาท)</Label>
+                  <Input
+                    id="price"
+                    type="number"
                     value={newProduct.price}
                     onChange={e => setNewProduct({...newProduct, price: Number(e.target.value)})}
-                    className="w-full bg-muted/30 border border-border/30 rounded-sm px-4 py-2 text-sm focus:outline-none focus:border-primary"
+                    className="rounded-sm"
                   />
                 </div>
-                <div>
-                  <label className="block text-[10px] uppercase tracking-widest mb-2">สต็อก (ชิ้น)</label>
-                  <input 
-                    type="number" 
+                <div className="space-y-2">
+                  <Label htmlFor="stock" className="text-[11px] uppercase tracking-widest font-bold text-muted-foreground">สต็อก (ชิ้น)</Label>
+                  <Input
+                    id="stock"
+                    type="number"
                     value={newProduct.stock}
                     onChange={e => setNewProduct({...newProduct, stock: Number(e.target.value)})}
-                    className="w-full bg-muted/30 border border-border/30 rounded-sm px-4 py-2 text-sm focus:outline-none focus:border-primary"
+                    className="rounded-sm"
                   />
                 </div>
               </div>
-              <div>
-                <label className="block text-[10px] uppercase tracking-widest mb-2">หมวดหมู่</label>
-                <select 
+              <div className="space-y-2">
+                <Label htmlFor="category" className="text-[11px] uppercase tracking-widest font-bold text-muted-foreground">หมวดหมู่</Label>
+                <select
+                  id="category"
                   value={newProduct.category}
                   onChange={e => setNewProduct({...newProduct, category: e.target.value})}
-                  className="w-full bg-muted/30 border border-border/30 rounded-sm px-4 py-2 text-sm focus:outline-none focus:border-primary appearance-none"
+                  className="flex h-10 w-full rounded-sm border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <option value="เสื้อผ้า">เสื้อผ้า</option>
                   <option value="ของที่ระลึก">ของที่ระลึก</option>
                   <option value="เครื่องประดับ">เครื่องประดับ</option>
                 </select>
               </div>
-
-              <button 
-                type="submit" 
-                disabled={isSaving}
-                className="w-full py-3 bg-primary text-black font-bold text-sm rounded-sm hover:bg-yellow-300 transition-colors flex items-center justify-center gap-2"
-              >
-                {isSaving ? <Loader2 size={16} className="animate-spin" /> : "บันทึกสินค้า"}
-              </button>
+              <DialogFooter>
+                <Button type="submit" disabled={isSaving} className="w-full font-bold uppercase tracking-widest text-[11px]">
+                  {isSaving ? <Loader2 size={16} className="animate-spin" /> : "บันทึกคลังสินค้า"}
+                </Button>
+              </DialogFooter>
             </form>
-          </div>
-        </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {!isFirebaseConfigured && (
+        <Badge variant="outline" className="bg-yellow-500/10 text-yellow-500 border-yellow-500/20 py-1 px-4">
+          <strong>Mode Local:</strong> ข้อมูลจะถูกดึงจาก Local Mock เสมอ
+        </Badge>
       )}
 
-      <div className="bg-card border border-border/40 rounded-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm whitespace-nowrap">
-            <thead className="text-[10px] uppercase text-muted-foreground tracking-widest border-b border-border/40 bg-muted/30">
-              <tr>
-                <th className="px-6 py-4 font-semibold">สินค้า {products.length > 0 && `(${products.length})`}</th>
-                <th className="px-6 py-4 font-semibold text-center">หมวดหมู่</th>
-                <th className="px-6 py-4 font-semibold text-center">ราคา</th>
-                <th className="px-6 py-4 font-semibold text-center">สต็อก</th>
-                <th className="px-6 py-4 font-semibold text-right">จัดการ</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/20">
-              {isLoading ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-20 text-center">
-                    <Loader2 className="animate-spin text-primary inline-block mb-2" size={24} />
-                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground">กำลังโหลดคลังสินค้า...</p>
-                  </td>
-                </tr>
-              ) : products.length > 0 ? products.map((p) => (
-                <tr key={p.id} className="hover:bg-muted/10 transition-colors text-[13px]">
-                  <td className="px-6 py-5">
+      <div className="rounded-sm border border-border/40 bg-card overflow-hidden shadow-sm">
+        <Table>
+          <TableHeader className="bg-muted/30">
+            <TableRow>
+              <TableHead className="w-[300px] uppercase tracking-widest text-[10px] font-bold">ชื่อสินค้า</TableHead>
+              <TableHead className="uppercase tracking-widest text-[10px] font-bold">หมวดหมู่</TableHead>
+              <TableHead className="text-right uppercase tracking-widest text-[10px] font-bold">ราคา</TableHead>
+              <TableHead className="text-right uppercase tracking-widest text-[10px] font-bold">สต็อก</TableHead>
+              <TableHead className="text-right uppercase tracking-widest text-[10px] font-bold">จัดการ</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={5} className="h-48 text-center">
+                  <Loader2 className="animate-spin text-primary inline-block mb-3" size={24} />
+                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground">กำลังโหลดคลังสินค้า...</p>
+                </TableCell>
+              </TableRow>
+            ) : products.length > 0 ? (
+              products.map((p) => (
+                <TableRow key={p.id} className="group hover:bg-muted/10 transition-colors">
+                  <TableCell className="font-medium">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-sm bg-muted flex items-center justify-center shrink-0 border border-border/20">
-                        <Tag size={16} className="text-muted-foreground" />
+                      <div className="w-9 h-9 rounded-sm bg-muted flex items-center justify-center text-muted-foreground">
+                        <Tag size={16} />
                       </div>
-                      <span className="font-medium text-foreground">{p.name}</span>
+                      <span className="text-sm">{p.name}</span>
                     </div>
-                  </td>
-                  <td className="px-6 py-5 text-center">
-                    <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground bg-muted p-1 px-2 rounded-sm border border-border/20">
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary" className="font-normal text-[10px] gap-1 px-2 py-0">
                       <Layers size={10} /> {p.category}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right font-bold text-sm">฿{p.price.toLocaleString()}</TableCell>
+                  <TableCell className="text-right">
+                    <span className={`text-[11px] font-bold ${p.stock <= 0 ? "text-red-500" : "text-emerald-500"}`}>
+                      {p.stock <= 0 ? "OUT OF STOCK" : `${p.stock} Units`}
                     </span>
-                  </td>
-                  <td className="px-6 py-5 text-center font-bold text-foreground">฿{p.price.toLocaleString()}</td>
-                  <td className="px-6 py-5 text-center px-6">
-                    <span className={`text-[11px] font-medium ${p.stock <= 0 ? "text-red-500" : "text-emerald-500"}`}>
-                      {p.stock <= 0 ? "สินค้าหมด" : `${p.stock} ชิ้น`}
-                    </span>
-                  </td>
-                  <td className="px-6 py-5 text-right">
-                    <div className="flex items-center justify-end gap-3">
-                      <button className="p-2 text-muted-foreground hover:text-primary transition-colors">
-                        <Edit2 size={16} />
-                      </button>
-                      <button 
-                        onClick={() => handleDelete(p.id)}
-                        className="p-2 text-muted-foreground hover:text-red-500 transition-colors"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary">
+                        <Edit2 size={14} />
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger
+                          className={cn(
+                            buttonVariants({ variant: "ghost", size: "icon" }),
+                            "h-8 w-8 text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
+                          )}
+                        >
+                          <Trash2 size={14} />
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>ยืนยันการลบสินค้า?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              คุณแน่ใจหรือไม่ว่าต้องการลบสินค้า "{p.name}" ออกจากระบบ ข้อมูลนี้จะไม่สามารถกู้คืนได้
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDelete(p.id)} variant="destructive">
+                              ลบสินค้าทันที
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
-                  </td>
-                </tr>
-              )) : (
-                <tr>
-                  <td colSpan={5} className="px-6 py-20 text-center text-muted-foreground text-xs italic">
-                    ไม่มีสินค้าในคลัง
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={5} className="h-48 text-center text-muted-foreground text-xs italic">
+                  ไม่มีสินค้าในระบบ
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
       </div>
     </div>
   );
 }
-
