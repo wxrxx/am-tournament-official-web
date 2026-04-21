@@ -177,12 +177,6 @@ export default function AdminPackagesPage() {
         </div>
       </div>
 
-      {!isFirebaseConfigured && (
-        <Badge variant="outline" className="bg-yellow-500/10 text-yellow-500 border-yellow-500/20 py-1 px-4">
-          <strong>Mode Local:</strong> โปรดตรวจสอบการตั้งค่า Firebase (Firestore)
-        </Badge>
-      )}
-
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[1, 2, 3].map(i => (

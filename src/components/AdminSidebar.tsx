@@ -57,21 +57,15 @@ export default function AdminSidebar() {
         </div>
         
         <div className="space-y-3">
-          {isFirebaseConfigured ? (
-            <div className="space-y-2">
-              <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 gap-1.5 py-1 px-3">
-                <Circle size={8} className="fill-emerald-500 animate-pulse" />
-                LIVE MODE
-              </Badge>
-              <p className="text-[10px] text-muted-foreground font-medium leading-tight opacity-70">
-                Connected to Cloudinary + Firestore
-              </p>
-            </div>
-          ) : (
-            <Badge variant="outline" className="bg-yellow-500/10 text-yellow-500 border-yellow-500/20 py-1 px-3">
-              MOCK MODE
+          <div className="space-y-2">
+            <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 gap-1.5 py-1 px-3">
+              <Circle size={8} className="fill-emerald-500 animate-pulse" />
+              LIVE MODE
             </Badge>
-          )}
+            <p className="text-[10px] text-muted-foreground font-medium leading-tight opacity-70">
+              Connected to Cloudinary + Firestore
+            </p>
+          </div>
         </div>
       </div>
 

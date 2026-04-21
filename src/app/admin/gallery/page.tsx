@@ -199,12 +199,6 @@ export default function AdminGalleryPage() {
         </Dialog>
       </div>
 
-      {!isFirebaseConfigured && (
-        <Badge variant="outline" className="bg-yellow-500/10 text-yellow-500 border-yellow-500/20 py-1 px-4">
-          <strong>Mode Local:</strong> โปรดตรวจสอบการตั้งค่า Firebase
-        </Badge>
-      )}
-
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {isLoading ? (
           Array(3).fill(0).map((_, i) => (

@@ -13,8 +13,18 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
+// User instructed: MUST force redeploy logic after ENV is set
+// MAKE SURE TO REDEPLOY IN VERCEL AFTER ADDING/UPDATING ENVIRONMENT VARIABLES
+console.log('ENV CHECK:', { 
+  cloudinary: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'missing', 
+  apiKey: process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY ? 'exists' : 'missing', 
+  secret: process.env.CLOUDINARY_API_SECRET ? 'exists' : 'missing',
+  firebase: process.env.NEXT_PUBLIC_FIREBASE_API_KEY ? 'exists' : 'missing'
+});
+
 // Check if Firebase keys are provided
-export const isFirebaseConfigured = !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
+// We enforce that if Cloudinary AND Firebase exist, we consider it configured
+export const isFirebaseConfigured = !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY && !!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
 
 let app: any;
 if (isFirebaseConfigured) {

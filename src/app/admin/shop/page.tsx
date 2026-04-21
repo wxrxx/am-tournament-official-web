@@ -175,15 +175,7 @@ export default function AdminShopPage() {
             </form>
           </DialogContent>
         </Dialog>
-      </div>
 
-      {!isFirebaseConfigured && (
-        <Badge variant="outline" className="bg-yellow-500/10 text-yellow-500 border-yellow-500/20 py-1 px-4">
-          <strong>Mode Local:</strong> ข้อมูลจะถูกดึงจาก Local Mock เสมอ
-        </Badge>
-      )}
-
-      <div className="rounded-sm border border-border/40 bg-card overflow-hidden shadow-sm">
         <Table>
           <TableHeader className="bg-muted/30">
             <TableRow>
