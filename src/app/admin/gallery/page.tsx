@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { DataService, GalleryAlbum } from "@/services/dataService";
-import { isFirebaseConfigured } from "@/lib/firebase";
 import { Plus, Trash2, Image as ImageIcon, ExternalLink, Shield, Upload, Loader2 } from "lucide-react";
 import { CldUploadWidget, CldImage } from "next-cloudinary";
 import { toast } from "sonner";

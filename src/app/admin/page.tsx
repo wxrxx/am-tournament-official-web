@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { Users, Image as ImageIcon, ShoppingBag, CreditCard, TrendingUp, Loader2, ArrowRight } from "lucide-react";
 import { DataService } from "@/services/dataService";
-import { isFirebaseConfigured } from "@/lib/firebase";
 import Link from "next/link";
 import {
   Card,
@@ -75,12 +74,10 @@ export default function AdminDashboard() {
           <h1 className="text-3xl font-bold tracking-tight text-foreground">แผงควบคุมระบบ</h1>
           <p className="text-muted-foreground">สรุปข้อมูลภาพรวมของ AM Tournament ฤดูกาล 2026</p>
         </div>
-        {isFirebaseConfigured && (
-          <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 gap-1.5 py-1 px-4 text-xs font-bold">
-            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-            LIVE MODE
-          </Badge>
-        )}
+        <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 gap-1.5 py-1 px-4 text-xs font-bold">
+          <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+          LIVE MODE
+        </Badge>
       </div>
 
       {isLoading ? (

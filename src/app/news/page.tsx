@@ -1,48 +1,31 @@
-import Link from "next/link";
-import { ArrowRight, Play, FileText, Image as ImageIcon } from "lucide-react";
+"use client";
 
-export const metadata = { title: "ข่าวสาร & ไฮไลต์ | AM Tournament" };
+import { useEffect, useState } from "react";
+import { ArrowRight, Play, FileText, Image as ImageIcon, Loader2 } from "lucide-react";
+import { DataService, News } from "@/services/dataService";
 
-const newsItems = [
-  {
-    id: "news_001",
-    type: "Highlight",
-    title: "ไฮไลต์ทำประตูสุดมันส์ สัปดาห์แรกของการแข่งขัน",
-    date: "18 พ.ค. 2026",
-    image: "https://images.unsplash.com/photo-1543326727-cf6c39e8f84c?q=80&w=800",
-    excerpt: "รวมทุกวินาทีสำคัญ ช็อตมหัศจรรย์และการทำประตูสวยงามจากสัปดาห์ที่ 1",
-    icon: Play
-  },
-  {
-    id: "news_002",
-    type: "News",
-    title: "Satun United ทีมประวัติศาสตร์ คว้าชัยนัดเปิดสนามได้อย่างสวยงาม",
-    date: "15 พ.ค. 2026",
-    image: "https://images.unsplash.com/photo-1553778263-73a83bab9b0c?q=80&w=800",
-    excerpt: "รายงานสดจากขอบสนาม Satun United คว้าคะแนนสำคัญไปได้อย่างยอดเยี่ยม",
-    icon: FileText
-  },
-  {
-    id: "news_003",
-    type: "Announcement",
-    title: "อัปเดตกฎกติกาใหม่ ฤดูกาล 2026 ที่ทุกทีมต้องรู้",
-    date: "10 พ.ค. 2026",
-    image: "https://images.unsplash.com/photo-1518605363461-4ea6718d0526?q=80&w=800",
-    excerpt: "การเปลี่ยนแปลงกฎการแข่งขัน การเปลี่ยนตัวผู้เล่น และระบบฟาวล์ในฤดูกาลนี้",
-    icon: FileText
-  },
-  {
-    id: "news_004",
-    type: "Gallery",
-    title: "รวมมิตรภาพนอกสนาม สีสันกองเชียร์",
-    date: "08 พ.ค. 2026",
-    image: "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?q=80&w=800",
-    excerpt: "บรรยากาศกองเชียร์และความน่ารักของแฟนบอลแต่ละทีมประจำสัปดาห์",
-    icon: ImageIcon
-  }
-];
+const iconMap: Record<string, any> = {
+  "Highlight": Play,
+  "News": FileText,
+  "Announcement": FileText,
+  "Gallery": ImageIcon
+};
 
 export default function NewsPage() {
+  const [newsItems, setNewsItems] = useState<News[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    loadNews();
+  }, []);
+
+  const loadNews = async () => {
+    setIsLoading(true);
+    const data = await DataService.getNews(false); // Only published
+    setNewsItems(data);
+    setIsLoading(false);
+  };
+
   return (
     <div className="pt-16 min-h-screen bg-background pb-32">
       {/* Header */}
@@ -58,48 +41,68 @@ export default function NewsPage() {
 
       <div className="border-t border-border/40">
         <div className="max-w-7xl mx-auto px-6 py-16">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-16">
-            {newsItems.map((news) => {
-              const Icon = news.icon;
-              return (
-                <article key={news.id} className="group cursor-pointer">
-                  {/* Image wrapper */}
-                  <div className="relative aspect-[16/9] overflow-hidden rounded-sm bg-muted mb-6">
-                    <div
-                      className="absolute inset-0 bg-cover bg-center group-hover:scale-[1.03] transition-transform duration-700"
-                      style={{ backgroundImage: `url('${news.image}')` }}
-                    />
-                    <div className="absolute top-4 left-4 bg-background/90 backdrop-blur-sm px-3 py-1.5 rounded-sm flex items-center gap-2">
-                      <Icon size={12} className="text-primary" />
-                      <span className="text-[10px] font-semibold tracking-wider text-foreground uppercase">
-                        {news.type}
-                      </span>
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-24">
+               <Loader2 className="animate-spin text-primary mb-4" size={32} />
+               <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">กำลังโหลดข่าวสาร...</p>
+            </div>
+          ) : newsItems.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-16">
+              {newsItems.map((news) => {
+                const Icon = iconMap[news.type] || FileText;
+                return (
+                  <article key={news.id} className="group cursor-pointer">
+                    {/* Image wrapper */}
+                    <div className="relative aspect-[16/9] overflow-hidden rounded-sm bg-muted mb-6">
+                      <div
+                        className="absolute inset-0 bg-cover bg-center group-hover:scale-[1.03] transition-transform duration-700"
+                        style={{ backgroundImage: `url('${news.imageUrl}')` }}
+                      />
+                      <div className="absolute top-4 left-4 bg-background/90 backdrop-blur-sm px-3 py-1.5 rounded-sm flex items-center gap-2">
+                        <Icon size={12} className="text-primary" />
+                        <span className="text-[10px] font-semibold tracking-wider text-foreground uppercase">
+                          {news.type}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                  
-                  {/* Content */}
-                  <div className="max-w-md">
-                    <p className="text-[11px] text-muted-foreground mb-3">{news.date}</p>
-                    <h3 className="text-xl font-medium text-foreground leading-snug mb-3 group-hover:text-primary transition-colors line-clamp-2">
-                      {news.title}
-                    </h3>
-                    <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
-                      {news.excerpt}
-                    </p>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
+                    
+                    {/* Content */}
+                    <div className="max-w-md">
+                      <p className="text-[11px] text-muted-foreground mb-3">
+                        {new Date(news.publishedAt).toLocaleDateString('th-TH', { 
+                          day: 'numeric', 
+                          month: 'short', 
+                          year: 'numeric' 
+                        })}
+                      </p>
+                      <h3 className="text-xl font-medium text-foreground leading-snug mb-3 group-hover:text-primary transition-colors line-clamp-2">
+                        {news.title}
+                      </h3>
+                      <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
+                        {news.excerpt}
+                      </p>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="py-24 text-center border-2 border-dashed border-border/40 rounded-sm">
+               <p className="text-sm text-muted-foreground italic font-medium">ยังไม่มีข่าวสารในขณะนี้</p>
+            </div>
+          )}
         </div>
       </div>
       
-      {/* Load More Button mock */}
-      <div className="flex justify-center pb-20">
-        <button className="px-8 py-3 text-sm font-semibold border border-border text-foreground rounded-sm hover:border-foreground/50 transition-colors">
-          ดูข่าวสารเพิ่มเติม
-        </button>
-      </div>
+      {/* Load More Button */}
+      {newsItems.length > 0 && !isLoading && (
+        <div className="flex justify-center pb-20">
+          <button className="px-8 py-3 text-sm font-semibold border border-border text-foreground rounded-sm hover:border-foreground/50 transition-colors uppercase tracking-widest text-[11px]">
+            ดูข่าวสารทั้งหมด
+          </button>
+        </div>
+      )}
     </div>
   );
 }
+

@@ -1,22 +1,25 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { auth, isFirebaseConfigured } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 import { 
   onAuthStateChanged, 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword,
   updateProfile,
   signOut as firebaseSignOut,
-  User as FirebaseUser
+  User as FirebaseUser,
+  AuthError
 } from "firebase/auth";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { toast } from "sonner";
 
-// This interface mirrors the subset of Clerk's user object we might need
 export interface User {
   id: string;
   fullName: string;
   primaryEmailAddress: { emailAddress: string };
   imageUrl?: string;
+  role?: string;
 }
 
 interface AuthContextType {
@@ -42,18 +45,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    // If not configured, load from Mock
-    if (!isFirebaseConfigured) {
-      const savedUser = localStorage.getItem("am_mock_user");
-      if (savedUser) {
-        setUser(JSON.parse(savedUser));
-      }
-      setIsLoaded(true);
-      return;
-    }
-
-    // Firebase Auth Listener
-    const unsubscribe = onAuthStateChanged(auth!, (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
         setUser({
           id: firebaseUser.uid,
@@ -70,55 +62,70 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => unsubscribe();
   }, []);
 
+  const getAuthErrorMessage = (error: AuthError) => {
+    switch (error.code) {
+      case "auth/wrong-password":
+        return "รหัสผ่านไม่ถูกต้อง";
+      case "auth/user-not-found":
+        return "ไม่พบบัญชีนี้ในระบบ";
+      case "auth/too-many-requests":
+        return "ลองใหม่อีกครั้งในภายหลัง";
+      case "auth/invalid-credential":
+        return "อีเมลหรือรหัสผ่านไม่ถูกต้อง";
+      case "auth/email-already-in-use":
+        return "อีเมลนี้มีบัญชีอยู่แล้ว";
+      case "auth/weak-password":
+        return "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร";
+      case "auth/invalid-email":
+        return "รูปแบบอีเมลไม่ถูกต้อง";
+      default:
+        return "เกิดข้อผิดพลาดในการเชื่อมต่อ โปรดลองอีกครั้ง";
+    }
+  };
+
   const signIn = async (email: string, pass: string) => {
-    // Check Mock Login
-    if (!isFirebaseConfigured && pass === "am2026") {
-      const mockUser: User = {
-        id: "mock_user_1",
-        fullName: email.split("@")[0] || "Admin",
-        primaryEmailAddress: { emailAddress: email },
-        imageUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
-      };
-      setUser(mockUser);
-      localStorage.setItem("am_mock_user", JSON.stringify(mockUser));
+    try {
+      await signInWithEmailAndPassword(auth, email, pass);
       return true;
+    } catch (error: any) {
+      const msg = getAuthErrorMessage(error as AuthError);
+      toast.error(msg);
+      console.error("Firebase Sign In Error:", error);
+      return false;
     }
-
-    // Real Firebase Auth
-    if (isFirebaseConfigured) {
-      try {
-        await signInWithEmailAndPassword(auth!, email, pass);
-        localStorage.removeItem("am_mock_user");
-        return true;
-      } catch (error) {
-        console.error("Firebase Sign In Error:", error);
-        return false;
-      }
-    }
-
-    return false;
   };
 
   const signUp = async (email: string, pass: string, fullName: string) => {
-    if (isFirebaseConfigured) {
-      try {
-        const res = await createUserWithEmailAndPassword(auth!, email, pass);
-        await updateProfile(res.user, { displayName: fullName });
-        return true;
-      } catch (error) {
-        console.error("Firebase Sign Up Error:", error);
-        return false;
-      }
+    try {
+      const res = await createUserWithEmailAndPassword(auth, email, pass);
+      await updateProfile(res.user, { displayName: fullName });
+      
+      // Create User Document in Firestore
+      await setDoc(doc(db, "users", res.user.uid), {
+        uid: res.user.uid,
+        email,
+        displayName: fullName,
+        role: "user",
+        banned: false,
+        createdAt: serverTimestamp(),
+      });
+
+      return true;
+    } catch (error: any) {
+      const msg = getAuthErrorMessage(error as AuthError);
+      toast.error(msg);
+      console.error("Firebase Sign Up Error:", error);
+      return false;
     }
-    return false;
   };
 
   const signOut = async () => {
-    if (isFirebaseConfigured) {
-      await firebaseSignOut(auth!);
+    try {
+      await firebaseSignOut(auth);
+      setUser(null);
+    } catch (error) {
+      console.error("Sign Out Error:", error);
     }
-    setUser(null);
-    localStorage.removeItem("am_mock_user");
   };
 
   const value = {

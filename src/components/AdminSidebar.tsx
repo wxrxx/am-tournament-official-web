@@ -15,9 +15,9 @@ import {
   ChevronLeft,
   Circle,
   Trophy,
-  Users
+  Users,
+  Newspaper
 } from "lucide-react";
-import { isFirebaseConfigured } from "@/lib/firebase";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button";
 const adminLinks = [
   { name: "แดชบอร์ด", href: "/admin", icon: BarChart3 },
   { name: "จัดการแกลเลอรี่", href: "/admin/gallery", icon: ImageIcon },
+  { name: "จัดการข่าวสาร", href: "/admin/news", icon: Newspaper },
   { name: "จัดการร้านค้า", href: "/admin/shop", icon: ShoppingBag },
   { name: "จัดการแพ็คทีม", href: "/admin/packages", icon: Package },
   { name: "จัดการรายการแข่งขัน", href: "/admin/competitions", icon: Trophy },

@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { Plus, Edit2, Zap, Target, Star, Loader2, CheckCircle2, Trash2, RefreshCcw } from "lucide-react";
 import { DataService, Package } from "@/services/dataService";
-import { isFirebaseConfigured } from "@/lib/firebase";
 import { toast } from "sonner";
 
 import {

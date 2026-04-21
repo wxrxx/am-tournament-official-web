@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { Plus, Edit2, Trash2, Tag, Layers, Loader2 } from "lucide-react";
 import { DataService, Product } from "@/services/dataService";
-import { isFirebaseConfigured } from "@/lib/firebase";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
@@ -175,7 +174,9 @@ export default function AdminShopPage() {
             </form>
           </DialogContent>
         </Dialog>
+      </div>
 
+      <div className="rounded-sm border border-border/40 bg-card overflow-hidden shadow-sm">
         <Table>
           <TableHeader className="bg-muted/30">
             <TableRow>
