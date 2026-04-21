@@ -24,7 +24,8 @@ console.log('ENV CHECK:', {
 
 // Check if Firebase keys are provided
 // We enforce that if Cloudinary AND Firebase exist, we consider it configured
-export const isFirebaseConfigured = !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY && !!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+const isCloudinaryComplete = !!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME && !!process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY && !!process.env.CLOUDINARY_API_SECRET;
+export const isFirebaseConfigured = !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY && isCloudinaryComplete;
 
 let app: any;
 if (isFirebaseConfigured) {

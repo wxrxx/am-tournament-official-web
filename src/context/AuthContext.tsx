@@ -42,9 +42,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    // Removed Mock Logic
-
+    // If not configured, load from Mock
     if (!isFirebaseConfigured) {
+      const savedUser = localStorage.getItem("am_mock_user");
+      if (savedUser) {
+        setUser(JSON.parse(savedUser));
+      }
       setIsLoaded(true);
       return;
     }
@@ -68,10 +71,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signIn = async (email: string, pass: string) => {
+    // Check Mock Login
+    if (!isFirebaseConfigured && pass === "am2026") {
+      const mockUser: User = {
+        id: "mock_user_1",
+        fullName: email.split("@")[0] || "Admin",
+        primaryEmailAddress: { emailAddress: email },
+        imageUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
+      };
+      setUser(mockUser);
+      localStorage.setItem("am_mock_user", JSON.stringify(mockUser));
+      return true;
+    }
+
     // Real Firebase Auth
     if (isFirebaseConfigured) {
       try {
         await signInWithEmailAndPassword(auth!, email, pass);
+        localStorage.removeItem("am_mock_user");
         return true;
       } catch (error) {
         console.error("Firebase Sign In Error:", error);
@@ -101,6 +118,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await firebaseSignOut(auth!);
     }
     setUser(null);
+    localStorage.removeItem("am_mock_user");
   };
 
   const value = {

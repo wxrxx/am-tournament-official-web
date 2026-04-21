@@ -194,19 +194,7 @@ export default function AdminDashboard() {
         </>
       )}
       
-      <div className="p-6 border border-primary/20 bg-primary/5 rounded-sm flex items-start gap-4">
-        <div className="p-2 bg-primary/10 rounded-sm">
-           <ImageIcon size={16} className="text-primary" />
-        </div>
-        <p className="text-xs text-muted-foreground leading-relaxed flex-1">
-          <span className="font-bold text-primary mr-2 uppercase tracking-widest text-[10px]">System Status:</span> 
-          ขณะนี้ระบบกำลังเชื่อมต่อกับ **{isFirebaseConfigured ? "🔥 Google Firebase" : "📁 Local Storage"}** 
-          {isFirebaseConfigured ? " ข้อมูลทั้งหมดถูกดึงและบันทึกแบบเรียลไทม์ผ่าน API ชุดใหม่" : " ข้อมูลที่คุณเห็นเป็นเพียงตัวอย่าง (Read-Only) กรุณาตรวจสอบการตั้งค่า Environment Variables"}
-        </p>
-        <Button variant="link" className="text-[10px] h-auto p-0 text-primary">
-           Backend Docs <ArrowRight size={10} className="ml-1" />
-        </Button>
-      </div>
+      {/* Status banner removed for cleaner UI */}
     </div>
   );
 }

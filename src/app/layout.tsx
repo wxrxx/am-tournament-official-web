@@ -25,7 +25,7 @@ const themeScript = `(function(){
     var t = localStorage.getItem('am_theme');
     if (t === 'light') {
       document.documentElement.classList.remove('dark');
-    } else {
+    } else if (t === 'dark') {
       document.documentElement.classList.add('dark');
     }
   } catch(e) {}
@@ -36,11 +36,13 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="th" className={kanit.variable} suppressHydrationWarning>
-      <body className="min-h-screen flex flex-col bg-background text-foreground antialiased font-sans">
-        {/* Must run before React hydration to avoid theme flash */}
+       {/* Use head for beforeInteractive scripts in Next 13+ to avoid body hydration issues */}
+      <head>
         <Script id="theme-init" strategy="beforeInteractive">
           {themeScript}
         </Script>
+      </head>
+      <body className="min-h-screen flex flex-col bg-background text-foreground antialiased font-sans" suppressHydrationWarning>
         <ThemeProvider>
           <AuthProvider>
             <Navbar />
