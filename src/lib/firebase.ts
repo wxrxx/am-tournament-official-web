@@ -4,22 +4,22 @@ import { getFirestore, Firestore } from "firebase/firestore";
 import { getStorage, FirebaseStorage } from "firebase/storage";
 
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "build-time-mock-key",
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "build-time-mock-domain",
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "build-time-mock-project",
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "build-time-mock-bucket",
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "build-time-mock-sender",
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "build-time-mock-app",
 };
 
 // Static Environment Validation (Next.js requires static access for NEXT_PUBLIC vars)
 const isConfigIncomplete = 
-  !firebaseConfig.apiKey || 
-  !firebaseConfig.authDomain || 
-  !firebaseConfig.projectId || 
-  !firebaseConfig.storageBucket || 
-  !firebaseConfig.messagingSenderId || 
-  !firebaseConfig.appId;
+  !process.env.NEXT_PUBLIC_FIREBASE_API_KEY || 
+  !process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 
+  !process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 
+  !process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 
+  !process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || 
+  !process.env.NEXT_PUBLIC_FIREBASE_APP_ID;
 
 if (isConfigIncomplete) {
   console.error("CRITICAL ERROR: Firebase Environment Variables are missing. Please check your .env.local");
