@@ -6,6 +6,7 @@ import { DataService, Product } from "@/services/dataService";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
+import ImageUpload from "@/components/ui/ImageUpload";
 
 import {
   Table,
@@ -50,7 +51,8 @@ export default function AdminShopPage() {
     name: "",
     price: 0,
     stock: 0,
-    category: "เสื้อผ้า"
+    category: "เสื้อผ้า",
+    image: ""
   });
 
   useEffect(() => {
@@ -85,7 +87,7 @@ export default function AdminShopPage() {
     const success = await DataService.createProduct(newProduct);
     if (success) {
       setIsAdding(false);
-      setNewProduct({ name: "", price: 0, stock: 0, category: "เสื้อผ้า" });
+      setNewProduct({ name: "", price: 0, stock: 0, category: "เสื้อผ้า", image: "" });
       loadProducts();
       toast.success("เพิ่มสินค้าใหม่สำเร็จ");
     } else {
@@ -129,6 +131,15 @@ export default function AdminShopPage() {
                   onChange={e => setNewProduct({...newProduct, name: e.target.value})}
                   placeholder="เช่น Official Jersey 2026"
                   className="rounded-sm"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[11px] uppercase tracking-widest font-bold text-muted-foreground">รูปสินค้า</Label>
+                <ImageUpload
+                  value={newProduct.image || undefined}
+                  onUpload={(url) => setNewProduct({...newProduct, image: url})}
+                  folder="products"
+                  label="คลิกเพื่ออัปโหลดรูปสินค้า"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">

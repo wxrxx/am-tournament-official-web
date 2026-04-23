@@ -11,7 +11,7 @@ import {
   User as FirebaseUser,
   AuthError
 } from "firebase/auth";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 import { toast } from "sonner";
 
 export interface User {
@@ -19,7 +19,7 @@ export interface User {
   fullName: string;
   primaryEmailAddress: { emailAddress: string };
   imageUrl?: string;
-  role?: string;
+  role: "admin" | "user";
 }
 
 interface AuthContextType {
@@ -40,21 +40,47 @@ const AuthContext = createContext<AuthContextType>({
   signOut: () => {},
 });
 
+// Cookie helpers
+function setSessionCookie(uid: string): void {
+  document.cookie = `__session=${uid}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+}
+
+function clearSessionCookie(): void {
+  document.cookie = "__session=; path=/; max-age=0; SameSite=Lax";
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
+        // Fetch role from Firestore
+        let role: "admin" | "user" = "user";
+        try {
+          const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
+          if (userDoc.exists()) {
+            const data = userDoc.data();
+            role = data.role === "admin" ? "admin" : "user";
+          }
+        } catch (err) {
+          console.error("Error fetching user role:", err);
+        }
+
         setUser({
           id: firebaseUser.uid,
           fullName: firebaseUser.displayName || firebaseUser.email?.split("@")[0] || "User",
           primaryEmailAddress: { emailAddress: firebaseUser.email || "" },
           imageUrl: firebaseUser.photoURL || undefined,
+          role,
         });
+
+        // Set session cookie for middleware
+        setSessionCookie(firebaseUser.uid);
       } else {
         setUser(null);
+        clearSessionCookie();
       }
       setIsLoaded(true);
     });
@@ -87,7 +113,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await signInWithEmailAndPassword(auth, email, pass);
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       const msg = getAuthErrorMessage(error as AuthError);
       toast.error(msg);
       console.error("Firebase Sign In Error:", error);
@@ -111,7 +137,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       const msg = getAuthErrorMessage(error as AuthError);
       toast.error(msg);
       console.error("Firebase Sign Up Error:", error);
@@ -123,6 +149,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await firebaseSignOut(auth);
       setUser(null);
+      clearSessionCookie();
     } catch (error) {
       console.error("Sign Out Error:", error);
     }
@@ -141,4 +168,3 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 }
 
 export const useAuth = () => useContext(AuthContext);
-

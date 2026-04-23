@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -112,23 +113,29 @@ export default function Navbar() {
                   <span className="text-[13px] font-medium">{user?.fullName}</span>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56 mt-2">
-                  <DropdownMenuLabel className="font-normal">
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">{user?.fullName}</p>
-                      <p className="text-xs leading-none text-muted-foreground">
-                        {user?.primaryEmailAddress?.emailAddress}
-                      </p>
-                    </div>
-                  </DropdownMenuLabel>
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel className="font-normal">
+                      <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-medium leading-none">{user?.fullName}</p>
+                        <p className="text-xs leading-none text-muted-foreground">
+                          {user?.primaryEmailAddress?.emailAddress}
+                        </p>
+                      </div>
+                    </DropdownMenuLabel>
+                  </DropdownMenuGroup>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem render={<Link href="/admin" />}>
-                    <LayoutDashboard className="mr-2 h-4 w-4" />
-                    แผงควบคุมแอดมิน
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <User className="mr-2 h-4 w-4" />
-                    ข้อมูลส่วนตัว
-                  </DropdownMenuItem>
+                  <DropdownMenuGroup>
+                    {user?.role === "admin" && (
+                      <DropdownMenuItem render={<Link href="/admin" />}>
+                        <LayoutDashboard className="mr-2 h-4 w-4" />
+                        แผงควบคุมแอดมิน
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem>
+                      <User className="mr-2 h-4 w-4" />
+                      ข้อมูลส่วนตัว
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
                   <DropdownMenuSeparator />
                   <AlertDialog>
                     <AlertDialogTrigger
@@ -223,16 +230,18 @@ export default function Navbar() {
                         </span>
                       </div>
                     </div>
-                    <Link
-                      href="/admin"
-                      onClick={() => setIsMobileOpen(false)}
-                      className={cn(
-                        buttonVariants({ variant: "outline" }),
-                        "w-full justify-start gap-2"
-                      )}
-                    >
-                      <LayoutDashboard size={18} /> แผงควบคุมแอดมิน
-                    </Link>
+                    {user?.role === "admin" && (
+                      <Link
+                        href="/admin"
+                        onClick={() => setIsMobileOpen(false)}
+                        className={cn(
+                          buttonVariants({ variant: "outline" }),
+                          "w-full justify-start gap-2"
+                        )}
+                      >
+                        <LayoutDashboard size={18} /> แผงควบคุมแอดมิน
+                      </Link>
+                    )}
                     <Button variant="destructive" className="w-full justify-start gap-2" onClick={handleSignOut}>
                       <LogOut size={18} /> ออกจากระบบ
                     </Button>

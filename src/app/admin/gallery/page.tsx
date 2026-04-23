@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { DataService, GalleryAlbum } from "@/services/dataService";
 import { Plus, Trash2, Image as ImageIcon, ExternalLink, Shield, Upload, Loader2 } from "lucide-react";
-import { CldUploadWidget, CldImage } from "next-cloudinary";
+import ImageUpload from "@/components/ui/ImageUpload";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
@@ -160,32 +160,13 @@ export default function AdminGalleryPage() {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-[11px] uppercase tracking-widest font-bold text-muted-foreground">รูปหน้าปก (Cloudinary)</Label>
-                <CldUploadWidget
-                  signatureEndpoint="/api/sign-cloudinary-params"
-                  onSuccess={(result: any) => { setCoverUrl(result.info.secure_url); }}
-                  onClose={() => {
-                    document.body.style.overflow = "auto";
-                    document.documentElement.style.overflow = "auto";
-                  }}
-                  options={{ maxFiles: 1, folder: "albums", clientAllowedFormats: ["jpg", "png", "webp", "avif"] }}
-                >
-                  {({ open }) => (
-                    <div
-                      onClick={() => open()}
-                      className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-border/30 rounded-sm cursor-pointer hover:border-primary/50 transition-colors bg-muted/10 overflow-hidden relative"
-                    >
-                      {coverUrl ? (
-                        <CldImage src={coverUrl} alt="Preview" fill className="object-cover" />
-                      ) : (
-                        <div className="flex flex-col items-center gap-2">
-                          <Upload size={24} className="text-muted-foreground" />
-                          <span className="text-[11px] text-muted-foreground text-center px-4">คลิกเพื่ออัปโหลดรูปหน้าปก (Signed)</span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </CldUploadWidget>
+                <Label className="text-[11px] uppercase tracking-widest font-bold text-muted-foreground">รูปหน้าปก</Label>
+                <ImageUpload
+                  value={coverUrl || undefined}
+                  onUpload={(url) => setCoverUrl(url)}
+                  folder="albums"
+                  label="คลิกเพื่ออัปโหลดรูปหน้าปก"
+                />
               </div>
 
               <DialogFooter>
@@ -207,22 +188,11 @@ export default function AdminGalleryPage() {
           albums.map(album => (
             <Card key={album.albumId} className="group overflow-hidden border-border/40 shadow-sm flex flex-col">
               <div className="aspect-video relative overflow-hidden bg-muted">
-                {album.coverUrl.includes("cloudinary") ? (
-                  <CldImage
-                    src={album.coverUrl}
-                    alt={album.title}
-                    width={600}
-                    height={340}
-                    crop="fill"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                ) : (
-                  <img
-                    src={album.coverUrl}
-                    alt={album.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                )}
+                <img
+                  src={album.coverUrl}
+                  alt={album.title}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
                 <div className="absolute top-3 left-3 flex gap-2">
                   {album.isProtected && (
                     <Badge className="bg-background/80 backdrop-blur-sm px-1.5 h-6 text-primary border-none">

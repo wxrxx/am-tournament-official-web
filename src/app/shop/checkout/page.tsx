@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { UploadCloud, ArrowLeft, CheckCircle2, Loader2, ShoppingCart } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { DataService } from "@/services/dataService";
-import { CldUploadWidget } from "next-cloudinary";
+import ImageUpload from "@/components/ui/ImageUpload";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -169,47 +169,16 @@ function CheckoutForm() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <p className="text-sm font-bold text-foreground">แนบสลิปโอนเงิน</p>
 
-            <CldUploadWidget
-              signatureEndpoint="/api/sign-cloudinary-params"
-              onSuccess={(result: any) => {
-                setSlipUrl(result.info.secure_url);
-                toast.success("อัปโหลดสลิปสำเร็จ!");
+            <ImageUpload
+              value={slipUrl || undefined}
+              onUpload={(url) => {
+                setSlipUrl(url);
+                if (url) toast.success("อัปโหลดสลิปสำเร็จ!");
               }}
-              onClose={() => {
-                document.body.style.overflow = "auto";
-                document.documentElement.style.overflow = "auto";
-              }}
-              options={{
-                maxFiles: 1,
-                folder: "slips",
-                clientAllowedFormats: ["jpg", "png", "pdf"],
-              }}
-            >
-              {({ open }) => (
-                <div
-                  onClick={() => open()}
-                  className={cn(
-                    "relative flex flex-col items-center justify-center border-2 border-dashed rounded-sm p-10 cursor-pointer transition-all duration-300",
-                    slipUrl
-                      ? "border-primary/40 bg-primary/5"
-                      : "border-border/50 bg-muted/10 hover:border-primary/40 hover:bg-primary/5"
-                  )}
-                >
-                  <UploadCloud
-                    size={26}
-                    className={cn("mb-3 transition-colors", slipUrl ? "text-primary" : "text-muted-foreground")}
-                    strokeWidth={1.5}
-                  />
-                  <span className="text-sm font-medium text-center">
-                    {slipUrl ? (
-                      <span className="text-primary font-bold">✓ อัปโหลดสลิปเรียบร้อยแล้ว</span>
-                    ) : (
-                      <span className="text-muted-foreground">คลิกเพื่ออัปโหลดสลิป (.jpg, .png, .pdf)</span>
-                    )}
-                  </span>
-                </div>
-              )}
-            </CldUploadWidget>
+              folder="slips"
+              label="คลิกเพื่ออัปโหลดสลิป (.jpg, .png)"
+              accept="image/png, image/jpeg, image/webp"
+            />
 
             <Button
               type="submit"

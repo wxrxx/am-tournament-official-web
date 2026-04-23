@@ -1,7 +1,16 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { DataService, Competition } from "@/services/dataService";
+import { useAuth } from "@/context/AuthContext";
+import { db } from "@/lib/firebase";
+import { collection, query, orderBy, onSnapshot } from "firebase/firestore";
+import {
+  createCompetition,
+  updateCompetition,
+  toggleCompetitionStatus,
+  deleteCompetition,
+} from "@/app/actions/admin/competitionActions";
+import type { Competition, CompetitionFormData } from "@/types/competition";
 import {
   Table,
   TableBody,
@@ -22,11 +31,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Trophy, Plus, Pencil, Trash2, ToggleLeft, ToggleRight, AlertCircle } from "lucide-react";
+import { Trophy, Plus, Pencil, Trash2, ToggleLeft, ToggleRight } from "lucide-react";
 import { toast } from "sonner";
 import Swal from "sweetalert2";
 
-const emptyForm: Partial<Competition> = {
+const emptyForm: CompetitionFormData = {
   name: "",
   type: "11 คน",
   maxPlayers: 11,
@@ -36,24 +45,44 @@ const emptyForm: Partial<Competition> = {
   startDate: "",
   endDate: "",
   status: "Open",
+  numberOfGroups: 4,
+  teamsPerGroup: 4,
 };
 
 export default function AdminCompetitionsPage() {
+  const { user } = useAuth();
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Competition | null>(null);
-  const [form, setForm] = useState<Partial<Competition>>(emptyForm);
+  const [form, setForm] = useState<CompetitionFormData>(emptyForm);
 
-  const fetch = useCallback(async () => {
-    setLoading(true);
-    const data = await DataService.getCompetitions();
-    setCompetitions(data);
-    setLoading(false);
+  // Real-time listener (admin real-time exception per CORE RULE 13 update)
+  useEffect(() => {
+    const q = query(
+      collection(db, "competitions"),
+      orderBy("createdAt", "desc")
+    );
+
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        const data = snap.docs.map((d) => ({
+          id: d.id,
+          ...d.data(),
+        })) as Competition[];
+        setCompetitions(data);
+        setLoading(false);
+      },
+      (err) => {
+        console.error("competitions onSnapshot error:", err);
+        setLoading(false);
+      }
+    );
+
+    return () => unsub();
   }, []);
-
-  useEffect(() => { fetch(); }, [fetch]);
 
   const openAdd = () => {
     setEditTarget(null);
@@ -63,45 +92,60 @@ export default function AdminCompetitionsPage() {
 
   const openEdit = (comp: Competition) => {
     setEditTarget(comp);
-    setForm({ ...comp });
+    setForm({
+      name: comp.name,
+      type: comp.type,
+      maxPlayers: comp.maxPlayers,
+      maxAge: comp.maxAge,
+      teamQuota: comp.teamQuota,
+      entryFee: comp.entryFee,
+      startDate: comp.startDate,
+      endDate: comp.endDate,
+      status: comp.status,
+      numberOfGroups: comp.numberOfGroups ?? 4,
+      teamsPerGroup: comp.teamsPerGroup ?? 4,
+    });
     setDialogOpen(true);
   };
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
+    if (!user) { toast.error("กรุณาเข้าสู่ระบบ"); return; }
     if (!form.name?.trim()) { toast.error("กรุณากรอกชื่อรายการ"); return; }
     if (!form.startDate || !form.endDate) { toast.error("กรุณากรอกวันที่เปิด/ปิดรับสมัคร"); return; }
+
     setSaving(true);
-    let ok = false;
+    let result;
     if (editTarget) {
-      ok = await DataService.updateCompetition(editTarget.id, form);
+      result = await updateCompetition(user.id, editTarget.id, form);
     } else {
-      ok = await DataService.createCompetition(form);
+      result = await createCompetition(user.id, form);
     }
     setSaving(false);
-    if (ok) {
-      toast.success(editTarget ? "แก้ไขรายการสำเร็จ" : "เพิ่มรายการสำเร็จ");
+
+    if (result.success) {
+      toast.success(result.message);
       setDialogOpen(false);
-      fetch();
     } else {
-      toast.error("เกิดข้อผิดพลาด กรุณาลองใหม่");
+      toast.error(result.message);
     }
-  };
+  }, [user, form, editTarget]);
 
-  const handleToggle = async (comp: Competition) => {
-    const newStatus = comp.status === "Open" ? "Closed" : "Open";
-    const ok = await DataService.updateCompetition(comp.id, { status: newStatus });
-    if (ok) {
-      toast.success(`${newStatus === "Open" ? "เปิด" : "ปิด"}การรับสมัครแล้ว`);
-      fetch();
+  const handleToggle = useCallback(async (comp: Competition) => {
+    if (!user) return;
+    const result = await toggleCompetitionStatus(user.id, comp.id);
+    if (result.success) {
+      toast.success(result.message);
     } else {
-      toast.error("เกิดข้อผิดพลาด");
+      toast.error(result.message);
     }
-  };
+  }, [user]);
 
-  const handleDelete = async (comp: Competition) => {
+  const handleDelete = useCallback(async (comp: Competition) => {
+    if (!user) return;
+
     const result = await Swal.fire({
       title: "ลบรายการนี้?",
-      text: `"${comp.name}" จะถูกลบออกถาวร ไม่สามารถกู้คืนได้`,
+      text: `"${comp.name}" จะถูกลบออกถาวร พร้อมทั้งสาย, แมตช์, ตารางคะแนน และ bracket ที่เกี่ยวข้อง`,
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#dc2626",
@@ -111,17 +155,18 @@ export default function AdminCompetitionsPage() {
       background: "hsl(var(--card))",
       color: "hsl(var(--foreground))",
     });
-    if (!result.isConfirmed) return;
-    const ok = await DataService.deleteCompetition(comp.id);
-    if (ok) {
-      toast.success("ลบรายการสำเร็จ");
-      fetch();
-    } else {
-      toast.error("เกิดข้อผิดพลาด");
-    }
-  };
 
-  const field = (key: keyof Competition, value: string | number) =>
+    if (!result.isConfirmed) return;
+
+    const deleteResult = await deleteCompetition(user.id, comp.id);
+    if (deleteResult.success) {
+      toast.success(deleteResult.message);
+    } else {
+      toast.error(deleteResult.message);
+    }
+  }, [user]);
+
+  const field = (key: keyof CompetitionFormData, value: string | number) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
   return (
@@ -293,6 +338,32 @@ export default function AdminCompetitionsPage() {
                   value={form.teamQuota || ""}
                   onChange={(e) => field("teamQuota", Number(e.target.value))}
                 />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label>จำนวนสาย</Label>
+                <select
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  value={form.numberOfGroups || 4}
+                  onChange={(e) => field("numberOfGroups", Number(e.target.value))}
+                >
+                  {[2,3,4,5,6,7,8].map((n) => (
+                    <option key={n} value={n}>{n} สาย</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>ทีมต่อสาย</Label>
+                <select
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  value={form.teamsPerGroup || 4}
+                  onChange={(e) => field("teamsPerGroup", Number(e.target.value))}
+                >
+                  {[3,4,5,6].map((n) => (
+                    <option key={n} value={n}>{n} ทีม</option>
+                  ))}
+                </select>
               </div>
             </div>
             <div className="space-y-1.5">

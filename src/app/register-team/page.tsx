@@ -21,6 +21,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
+import ImageUpload from "@/components/ui/ImageUpload";
 
 interface FormState {
   teamName: string;
@@ -47,55 +48,6 @@ export default function RegisterTeamPage() {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
-  const [uploadingLogo, setUploadingLogo] = useState(false);
-  const [uploadingSlip, setUploadingSlip] = useState(false);
-  const logoInputRef = useRef<HTMLInputElement>(null);
-  const slipInputRef = useRef<HTMLInputElement>(null);
-
-  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploadingLogo(true);
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const res = await fetch("/api/upload-logo", { method: "POST", body: formData });
-      const data = await res.json();
-      if (data.secure_url) {
-        field("logoUrl", data.secure_url);
-        toast.success("อัปโหลดโลโก้สำเร็จ");
-      } else throw new Error(data.error || "Upload failed");
-    } catch (err) {
-      console.error(err);
-      toast.error("อัปโหลดโลโก้ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
-    } finally {
-      setUploadingLogo(false);
-      if (logoInputRef.current) logoInputRef.current.value = "";
-    }
-  };
-
-  const handleSlipUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploadingSlip(true);
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const res = await fetch("/api/upload-slip", { method: "POST", body: formData });
-      const data = await res.json();
-      if (data.secure_url) {
-        field("slipUrl", data.secure_url);
-        toast.success("อัปโหลดสลิปสำเร็จ");
-      } else throw new Error(data.error || "Upload failed");
-    } catch (err) {
-      console.error(err);
-      toast.error("อัปโหลดสลิปไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
-    } finally {
-      setUploadingSlip(false);
-      if (slipInputRef.current) slipInputRef.current.value = "";
-    }
-  };
-
   const fetchComps = useCallback(async () => {
     setLoading(true);
     const all = await DataService.getCompetitions();
@@ -204,49 +156,13 @@ export default function RegisterTeamPage() {
                 {/* Logo Upload */}
                 <div className="space-y-1.5">
                   <Label>โลโก้ทีม <span className="text-red-500">*</span></Label>
-                  {form.logoUrl ? (
-                    <div className="flex items-center gap-4">
-                      <img src={form.logoUrl} alt="logo" className="w-16 h-16 rounded-xl object-cover border border-border/40" />
-                      <div className="space-y-1">
-                        <p className="text-sm font-medium text-emerald-600">อัปโหลดสำเร็จ ✓</p>
-                        <button 
-                          type="button" 
-                          onClick={() => logoInputRef.current?.click()} 
-                          className="text-xs text-muted-foreground hover:text-foreground underline disabled:opacity-50"
-                          disabled={uploadingLogo}
-                        >
-                          {uploadingLogo ? "กำลังอัปโหลด..." : "เปลี่ยนรูป"}
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => logoInputRef.current?.click()}
-                      disabled={uploadingLogo}
-                      className="flex flex-col items-center justify-center w-full h-28 rounded-xl border-2 border-dashed border-border/60 hover:border-primary/50 hover:bg-primary/5 transition-all gap-2 text-muted-foreground hover:text-foreground disabled:opacity-50"
-                    >
-                      {uploadingLogo ? (
-                        <>
-                          <Loader2 size={20} className="animate-spin text-primary" />
-                          <span className="text-sm font-medium">กำลังอัปโหลดโลโก้...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Upload size={20} />
-                          <span className="text-sm font-medium">คลิกเพื่ออัปโหลดโลโก้ทีม</span>
-                          <span className="text-xs opacity-60">ไฟล์ PNG, JPG ขนาดไม่เกิน 5MB</span>
-                        </>
-                      )}
-                    </button>
-                  )}
-                  <input
-                    type="file"
-                    accept="image/png, image/jpeg, image/jpg, image/webp"
-                    className="hidden"
-                    ref={logoInputRef}
-                    onChange={handleLogoUpload}
+                  <ImageUpload
+                    value={form.logoUrl || undefined}
+                    onUpload={(url) => field("logoUrl", url)}
+                    folder="teams"
+                    label="คลิกเพื่ออัปโหลดโลโก้ทีม"
                   />
+
                 </div>
               </div>
 
@@ -296,49 +212,13 @@ export default function RegisterTeamPage() {
                 </div>
                 <div className="space-y-1.5">
                   <Label>อัปโหลดสลิป <span className="text-red-500">*</span></Label>
-                  {form.slipUrl ? (
-                    <div className="space-y-2">
-                      <img src={form.slipUrl} alt="slip" className="w-full max-h-48 object-contain rounded-xl border border-border/40 bg-muted" />
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium text-emerald-600">อัปโหลดสำเร็จ ✓</p>
-                        <button 
-                          type="button" 
-                          onClick={() => slipInputRef.current?.click()} 
-                          className="text-xs text-muted-foreground hover:text-foreground underline disabled:opacity-50"
-                          disabled={uploadingSlip}
-                        >
-                          {uploadingSlip ? "กำลังอัปโหลด..." : "เปลี่ยนสลิป"}
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => slipInputRef.current?.click()}
-                      disabled={uploadingSlip}
-                      className="flex flex-col items-center justify-center w-full h-28 rounded-xl border-2 border-dashed border-border/60 hover:border-primary/50 hover:bg-primary/5 transition-all gap-2 text-muted-foreground hover:text-foreground disabled:opacity-50"
-                    >
-                      {uploadingSlip ? (
-                        <>
-                          <Loader2 size={20} className="animate-spin text-primary" />
-                          <span className="text-sm font-medium">กำลังอัปโหลดสลิป...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Upload size={20} />
-                          <span className="text-sm font-medium">คลิกเพื่ออัปโหลดสลิป</span>
-                          <span className="text-xs opacity-60">ไฟล์ PNG, JPG ของสลิปการโอนเงิน</span>
-                        </>
-                      )}
-                    </button>
-                  )}
-                  <input
-                    type="file"
-                    accept="image/png, image/jpeg, image/jpg, image/webp"
-                    className="hidden"
-                    ref={slipInputRef}
-                    onChange={handleSlipUpload}
+                  <ImageUpload
+                    value={form.slipUrl || undefined}
+                    onUpload={(url) => field("slipUrl", url)}
+                    folder="slips"
+                    label="คลิกเพื่ออัปโหลดสลิปการชำระเงิน"
                   />
+
                 </div>
               </div>
 

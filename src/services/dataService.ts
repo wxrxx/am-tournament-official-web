@@ -28,6 +28,8 @@ export interface Competition {
   endDate: string;
   status: "Open" | "Closed";
   createdAt?: string;
+  numberOfGroups?: number;
+  teamsPerGroup?: number;
 }
 
 export interface TeamRegistration {

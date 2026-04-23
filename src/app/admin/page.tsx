@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { Users, Image as ImageIcon, ShoppingBag, CreditCard, TrendingUp, Loader2, ArrowRight } from "lucide-react";
 import { DataService } from "@/services/dataService";
+import { db } from "@/lib/firebase";
+import { collection, getDocs, query, orderBy } from "firebase/firestore";
 import Link from "next/link";
 import {
   Card,
@@ -15,40 +17,57 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "@/components/ui/button";
+import type { GalleryAlbum } from "@/services/dataService";
+
+interface DashboardOrder {
+  id: string;
+  name?: string;
+  user?: string;
+  price?: number;
+  status?: string;
+  date?: string;
+}
 
 export default function AdminDashboard() {
   const [statsData, setStatsData] = useState({
     images: 0,
     orders: 0,
-    teams: 0,
+    clubs: 0,
     revenue: 0,
   });
-  const [recentOrders, setRecentOrders] = useState<any[]>([]);
-  const [recentAlbums, setRecentAlbums] = useState<any[]>([]);
+  const [recentOrders, setRecentOrders] = useState<DashboardOrder[]>([]);
+  const [recentAlbums, setRecentAlbums] = useState<GalleryAlbum[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function loadDashboardData() {
       setIsLoading(true);
       try {
-        const [albums, orders, teamsList] = await Promise.all([
+        // Fetch albums & orders from DataService (allowed per CORE RULES)
+        // Fetch clubs from Firestore directly (NOT DataService)
+        const [albums, orders, clubsSnap] = await Promise.all([
           DataService.getGalleryAlbums(),
           DataService.getOrders(5),
-          DataService.getTeams()
+          getDocs(query(collection(db, "clubs"), orderBy("name", "asc"))),
         ]);
+
+        // Count only active clubs (filter client-side per CORE RULE #20)
+        const activeClubs = clubsSnap.docs.filter(
+          (d) => d.data().status === "active"
+        );
 
         const totalImages = albums.reduce((sum, album) => sum + (album.photos?.length || 0), 0);
         const totalRevenue = orders
-          .filter(o => o.status === "Confirmed")
-          .reduce((sum, o) => sum + (Number(o.price) || 0), 0);
+          .filter((o: DashboardOrder) => o.status === "Confirmed")
+          .reduce((sum: number, o: DashboardOrder) => sum + (Number(o.price) || 0), 0);
 
         setStatsData({
           images: totalImages,
           orders: orders.length,
-          teams: teamsList ? teamsList.length : 0,
+          clubs: activeClubs.length,
           revenue: totalRevenue
         });
-        setRecentOrders(orders);
+        setRecentOrders(orders as DashboardOrder[]);
         setRecentAlbums(albums.slice(0, 5));
       } catch (error) {
         console.error("Dashboard Load Error:", error);
@@ -62,7 +81,7 @@ export default function AdminDashboard() {
   const stats = [
     { label: "จำนวนรูปภาพรวม", value: statsData.images.toLocaleString(), icon: ImageIcon, color: "text-blue-500", bg: "bg-blue-500/10" },
     { label: "รายการสั่งซื้อทั้งหมด", value: statsData.orders.toLocaleString(), icon: CreditCard, color: "text-emerald-500", bg: "bg-emerald-500/10" },
-    { label: "สมาชิกทีมทางการ", value: `${statsData.teams} ทีม`, icon: Users, color: "text-cyan-500", bg: "bg-cyan-500/10" },
+    { label: "สโมสรที่ Active", value: `${statsData.clubs} สโมสร`, icon: Users, color: "text-cyan-500", bg: "bg-cyan-500/10" },
     { label: "รายได้ที่ได้รับการยืนยัน", value: `฿${statsData.revenue.toLocaleString()}`, icon: TrendingUp, color: "text-primary", bg: "bg-primary/10" },
   ];
 

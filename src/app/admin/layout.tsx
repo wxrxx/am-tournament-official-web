@@ -3,54 +3,94 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import AdminSidebar from "@/components/AdminSidebar";
+import { db } from "@/lib/firebase";
+import { doc, getDoc } from "firebase/firestore";
+import AdminSidebar from "@/components/admin/AdminSidebar";
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
+
+type AuthStatus = "loading" | "authorized" | "unauthorized";
 
 export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { isLoaded, isSignedIn } = useAuth();
+  const { isLoaded, isSignedIn, user } = useAuth();
   const router = useRouter();
-  const [authorized, setAuthorized] = useState(false);
+  const [authStatus, setAuthStatus] = useState<AuthStatus>("loading");
 
   useEffect(() => {
-    if (isLoaded) {
-      if (!isSignedIn) {
-        // TODO: Future Clerk Integration - Protected Route will be handled by middleware
-        const email = prompt("คุณกำลังเข้าสู่พื้นที่สำหรับ Admin\nกรุณาใส่อีเมลของคุณ:");
-        const pass = prompt("ใส่รหัสผ่านเพื่อเข้าใช้งาน:");
-        
-        if (pass === "am2026") {
-          // Re-signIn logic if they aren't already logged in
-          // This uses the existing signIn from AuthContext
-          setAuthorized(true);
-        } else {
-          alert("รหัสผ่านไม่ถูกต้อง");
-          router.push("/");
-        }
-      } else {
-        setAuthorized(true);
-      }
-    }
-  }, [isLoaded, isSignedIn, router]);
+    if (!isLoaded) return;
 
-  if (!isLoaded || !authorized) {
+    // Step 1: Check if user is signed in
+    if (!isSignedIn || !user) {
+      router.replace("/login");
+      return;
+    }
+
+    // Step 2: Verify role from Firestore (defense in depth)
+    const verifyAdmin = async () => {
+      try {
+        const userDoc = await getDoc(doc(db, "users", user.id));
+        
+        if (!userDoc.exists()) {
+          toast.error("ไม่พบข้อมูลผู้ใช้ในระบบ");
+          router.replace("/");
+          return;
+        }
+
+        const data = userDoc.data();
+
+        // Check banned status
+        if (data.banned === true) {
+          toast.error("บัญชีของคุณถูกระงับการใช้งาน");
+          router.replace("/login");
+          return;
+        }
+
+        // Check admin role
+        if (data.role !== "admin") {
+          toast.error("ไม่มีสิทธิ์เข้าถึงหน้า Admin");
+          router.replace("/");
+          return;
+        }
+
+        // All checks passed
+        setAuthStatus("authorized");
+      } catch (error) {
+        console.error("Admin verification error:", error);
+        toast.error("เกิดข้อผิดพลาดในการตรวจสอบสิทธิ์");
+        router.replace("/");
+      }
+    };
+
+    verifyAdmin();
+  }, [isLoaded, isSignedIn, user, router]);
+
+  // Loading state - don't show any admin UI
+  if (authStatus === "loading") {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-background text-muted-foreground animate-pulse font-sans">
-        กำลังตรวจสอบสิทธิ์...
+      <div className="flex flex-col items-center justify-center min-h-screen bg-background gap-4">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground font-medium uppercase tracking-widest">
+          กำลังตรวจสอบสิทธิ์...
+        </p>
       </div>
     );
   }
 
+  // Only render admin UI when fully authorized
+  if (authStatus !== "authorized") {
+    return null;
+  }
+
   return (
-    <div className="min-h-screen bg-background font-sans pt-16">
-      <div className="flex">
-        <AdminSidebar />
-        <main className="flex-1 ml-64 p-8 md:p-12 lg:p-16">
-          {children}
-        </main>
-      </div>
+    <div className="flex min-h-screen bg-background">
+      <AdminSidebar />
+      <main className="flex-1 overflow-auto p-6 md:p-10 lg:p-14">
+        {children}
+      </main>
     </div>
   );
 }

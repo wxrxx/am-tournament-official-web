@@ -5,7 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Separator } from "@/components/ui/separator";
 
 export default function Footer() {
-  const { isSignedIn } = useAuth();
+  const { isSignedIn, user } = useAuth();
 
   return (
     <footer className="border-t border-border/40 py-20 bg-card/30 backdrop-blur-sm animate-in fade-in duration-1000">
@@ -58,7 +58,7 @@ export default function Footer() {
                     </Link>
                   </li>
                 ))}
-                {isSignedIn && (
+                {user?.role === "admin" && (
                   <li>
                     <Link href="/admin" className="text-[13px] text-primary font-bold hover:underline transition-all flex items-center gap-2">
                        Control Panel

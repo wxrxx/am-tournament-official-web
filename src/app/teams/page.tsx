@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { Users, MapPin, Award } from "lucide-react";
-import { DataService, Team } from "@/services/dataService";
+import { db } from "@/lib/firebase";
+import { collection, query, where, orderBy, onSnapshot } from "firebase/firestore";
+import type { Club } from "@/types/club";
 import {
   Card,
   CardContent,
@@ -15,14 +17,29 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 
 export default function TeamsPage() {
-  const [teams, setTeams] = useState<Team[]>([]);
+  const [teams, setTeams] = useState<Club[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    DataService.getTeams().then((res) => {
-      setTeams(res || []);
-      setLoading(false);
-    });
+    const q = query(
+      collection(db, "clubs"),
+      where("status", "==", "active"),
+      orderBy("name", "asc")
+    )
+
+    const unsub = onSnapshot(q, (snap) => {
+      const data = snap.docs.map((d) => ({
+        id: d.id,
+        ...d.data(),
+      })) as Club[]
+      setTeams(data)
+      setLoading(false)
+    }, (err) => {
+      console.error("getTeams error:", err)
+      setLoading(false)
+    })
+
+    return () => unsub()
   }, []);
 
   return (
@@ -61,9 +78,9 @@ export default function TeamsPage() {
                 <CardHeader className="pb-4">
                   <div className="flex items-start gap-5">
                     {/* Real Team Logo */}
-                    {team.logoUrl ? (
+                    {team.logo ? (
                       <img 
-                        src={team.logoUrl} 
+                        src={team.logo} 
                         alt={team.name} 
                         className="w-16 h-16 rounded-xl object-cover border border-border/50 shadow-sm group-hover:scale-105 transition-transform duration-500"
                       />
@@ -78,10 +95,10 @@ export default function TeamsPage() {
                         {team.name}
                       </CardTitle>
                       <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-medium uppercase tracking-wider">
-                        <MapPin size={12} className="text-primary/70" /> {team.region || 'ไม่ระบุโซน'}
+                        <MapPin size={12} className="text-primary/70" /> -
                       </div>
                       <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-medium mt-1">
-                        <Award size={12} className="text-primary/70" /> {team.competition || 'AM Tournament'}
+                        <Award size={12} className="text-primary/70" /> AM Tournament
                       </div>
                     </div>
                   </div>
@@ -93,13 +110,13 @@ export default function TeamsPage() {
                         <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-semibold flex items-center gap-1">
                           ผู้จัดการทีม
                         </p>
-                        <p className="text-[13px] font-bold text-foreground line-clamp-1">{team.managerName || 'ไม่ระบุ'}</p>
+                        <p className="text-[13px] font-bold text-foreground line-clamp-1">{team.contactName || 'ไม่ระบุ'}</p>
                       </div>
                       <div className="space-y-0.5 px-2">
                         <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-semibold flex items-center gap-1">
                           Since
                         </p>
-                        <p className="text-[13px] font-bold text-foreground">{team.since || new Date().getFullYear()}</p>
+                        <p className="text-[13px] font-bold text-foreground">{team.approvedAt && typeof team.approvedAt === "object" && "toDate" in team.approvedAt ? team.approvedAt.toDate().getFullYear() : new Date().getFullYear()}</p>
                       </div>
                    </div>
                 </CardContent>

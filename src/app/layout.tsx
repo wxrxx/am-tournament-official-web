@@ -4,8 +4,7 @@ import Script from "next/script";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { ThemeProvider } from "@/context/ThemeContext";
-import Navbar from "@/components/Navbar";
-import ClientFooter from "@/components/ClientFooter";
+import NavigationWrapper from "@/components/NavigationWrapper";
 import { Toaster } from "@/components/ui/sonner";
 
 const kanit = Kanit({
@@ -45,11 +44,9 @@ export default function RootLayout({
       <body className="min-h-screen flex flex-col bg-background text-foreground antialiased font-sans" suppressHydrationWarning>
         <ThemeProvider>
           <AuthProvider>
-            <Navbar />
-            <main className="flex-grow flex flex-col">
+            <NavigationWrapper>
               {children}
-            </main>
-            <ClientFooter />
+            </NavigationWrapper>
             <Toaster position="top-right" />
           </AuthProvider>
         </ThemeProvider>
