@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { collection, onSnapshot, query, where, orderBy } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -15,19 +17,53 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { CheckCircle2 } from "lucide-react";
-import { DataService, Package } from "@/services/dataService";
 import { Skeleton } from "@/components/ui/skeleton";
 
+interface PackageData {
+  id: string;
+  name: string;
+  price: number;
+  unit: string;
+  description: string;
+  features: string[];
+  status: "Active" | "Inactive";
+  popular: boolean;
+}
+
 export default function TeamPackagePage() {
-  const [packages, setPackages] = useState<Package[]>([]);
+  const [packages, setPackages] = useState<PackageData[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    DataService.getPackages().then((res) => {
-      // Filter out inactive packages
-      setPackages((res || []).filter(p => p.status === "Active"));
+    const q = query(
+      collection(db, "packages"),
+      where("status", "==", "Active"),
+      orderBy("price", "asc")
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data: PackageData[] = [];
+      snapshot.forEach((doc) => {
+        const d = doc.data();
+        data.push({
+          id: doc.id,
+          name: d.name ?? "",
+          price: d.price ?? 0,
+          unit: d.unit ?? "บาท",
+          description: d.description ?? "",
+          features: d.features ?? [],
+          status: d.status ?? "Active",
+          popular: d.popular ?? false,
+        });
+      });
+      setPackages(data);
+      setLoading(false);
+    }, (error) => {
+      console.error("Error fetching packages:", error);
       setLoading(false);
     });
+
+    return () => unsubscribe();
   }, []);
 
   return (

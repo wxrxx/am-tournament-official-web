@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Kanit } from "next/font/google";
-import Script from "next/script";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { ThemeProvider } from "@/context/ThemeContext";
@@ -35,13 +34,13 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="th" className={kanit.variable} suppressHydrationWarning>
-       {/* Use head for beforeInteractive scripts in Next 13+ to avoid body hydration issues */}
-      <head>
-        <Script id="theme-init" strategy="beforeInteractive">
-          {themeScript}
-        </Script>
-      </head>
+      <head />
       <body className="min-h-screen flex flex-col bg-background text-foreground antialiased font-sans" suppressHydrationWarning>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: themeScript,
+          }}
+        />
         <ThemeProvider>
           <AuthProvider>
             <NavigationWrapper>

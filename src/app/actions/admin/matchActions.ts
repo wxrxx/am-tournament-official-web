@@ -381,4 +381,118 @@ export async function getCompetitions(currentUid: string): Promise<{
   }
 }
 
+// ─── Action 9: Reset Match Result (back to scheduled) ────────────
+export async function resetMatchResult(
+  currentUid: string,
+  matchId: string
+): Promise<ActionResult> {
+  try {
+    await verifyAdmin(currentUid);
 
+    const matchRef = adminDb.collection("matches").doc(matchId);
+    const matchDoc = await matchRef.get();
+
+    if (!matchDoc.exists) {
+      return { success: false, message: "ไม่พบแมตช์นี้ในระบบ" };
+    }
+
+    const matchData = matchDoc.data() as Omit<Match, "id">;
+
+    if (matchData.status !== "completed") {
+      return { success: false, message: "แมตช์นี้ยังไม่ได้บันทึกผล" };
+    }
+
+    const { competitionId, groupId, homeTeamId, awayTeamId } = matchData;
+
+    // Reset match to scheduled with 0-0
+    await matchRef.update({
+      homeScore: 0,
+      awayScore: 0,
+      status: "scheduled",
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+
+    // Recalculate standings for both teams (removing the old result)
+    const batch = adminDb.batch();
+    await Promise.all([
+      recalculateStanding(batch, competitionId, groupId, homeTeamId),
+      recalculateStanding(batch, competitionId, groupId, awayTeamId),
+    ]);
+    await batch.commit();
+
+    return { success: true, message: "รีเซ็ตผลและอัปเดตตารางคะแนนเรียบร้อย" };
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : "เกิดข้อผิดพลาด";
+    return { success: false, message: msg };
+  }
+}
+
+// ─── Action 10: Get Standings for a group ─────────────────────────
+export async function getStandings(
+  currentUid: string,
+  competitionId: string,
+  groupId: string
+): Promise<{
+  success: boolean;
+  message: string;
+  standings: (Standing & { id: string })[];
+}> {
+  try {
+    await verifyAdmin(currentUid);
+
+    const snap = await adminDb
+      .collection("standings")
+      .where("competitionId", "==", competitionId)
+      .where("groupId", "==", groupId)
+      .get();
+
+    const standings = snap.docs.map((d) => ({
+      id: d.id,
+      ...(d.data() as Standing),
+    }));
+
+    // Sort: points DESC → goalDiff DESC → goalsFor DESC
+    standings.sort((a, b) => {
+      if (b.points !== a.points) return b.points - a.points;
+      if (b.goalDiff !== a.goalDiff) return b.goalDiff - a.goalDiff;
+      return b.goalsFor - a.goalsFor;
+    });
+
+    return { success: true, message: "", standings };
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : "เกิดข้อผิดพลาด";
+    return { success: false, message: msg, standings: [] };
+  }
+}
+
+// ─── Action 11: Recalculate all standings for a group ─────────────
+export async function recalculateGroupStandings(
+  currentUid: string,
+  competitionId: string,
+  groupId: string,
+  clubIds: string[]
+): Promise<ActionResult> {
+  try {
+    await verifyAdmin(currentUid);
+
+    if (clubIds.length === 0) {
+      return { success: false, message: "ไม่มีทีมในสายนี้" };
+    }
+
+    const batch = adminDb.batch();
+    await Promise.all(
+      clubIds.map((clubId) =>
+        recalculateStanding(batch, competitionId, groupId, clubId)
+      )
+    );
+    await batch.commit();
+
+    return {
+      success: true,
+      message: `คำนวณตารางคะแนนใหม่สำหรับ ${clubIds.length} ทีมเรียบร้อย`,
+    };
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : "เกิดข้อผิดพลาด";
+    return { success: false, message: msg };
+  }
+}

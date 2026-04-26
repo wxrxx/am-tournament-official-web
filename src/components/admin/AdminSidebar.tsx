@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -17,7 +17,6 @@ import {
   Users,
   Settings,
   LogOut,
-  ChevronDown,
   ChevronLeft,
   Menu,
   X,
@@ -38,68 +37,53 @@ interface MenuItem {
 interface MenuGroup {
   id: string;
   label: string;
-  icon: React.ElementType;
   items: MenuItem[];
 }
 
 // ─── Menu Config ────────────────────────────────────────────────────────────
-const STANDALONE: MenuItem = {
-  name: "แดชบอร์ด",
-  href: "/admin",
-  icon: BarChart3,
-};
-
 const MENU_GROUPS: MenuGroup[] = [
   {
-    id: "tournament",
-    label: "จัดการรายการแข่ง",
-    icon: Trophy,
+    id: "overview",
+    label: "OVERVIEW",
     items: [
-      { name: "รายการแข่งขัน", href: "/admin/competitions", icon: Trophy },
-      { name: "แบ่งสาย", href: "/admin/draw", icon: Dices },
-      { name: "ตารางแข่ง", href: "/admin/schedule", icon: CalendarDays },
-      { name: "ผลการแข่งขัน", href: "/admin/results", icon: Trophy },
+      { name: "Dashboard", href: "/admin", icon: BarChart3 },
     ],
   },
   {
-    id: "teams",
-    label: "จัดการทีม",
-    icon: Shield,
+    id: "tournament",
+    label: "TOURNAMENT",
     items: [
+      { name: "รายการแข่งขัน", href: "/admin/competitions", icon: Trophy },
       { name: "ใบสมัครทีม", href: "/admin/registrations", icon: ClipboardList },
       { name: "สโมสร", href: "/admin/clubs", icon: Shield },
-      { name: "แพ็คทีม", href: "/admin/packages", icon: Package },
+      { name: "แบ่งสาย", href: "/admin/draw", icon: Dices },
+      { name: "ตารางแข่ง", href: "/admin/schedule", icon: CalendarDays },
+      { name: "ผลการแข่งขัน", href: "/admin/results", icon: Trophy },
+      { name: "ตารางคะแนน", href: "/admin/standings", icon: BarChart3 },
+      { name: "Bracket", href: "/admin/bracket", icon: Trophy },
+      { name: "ทำเนียบแชมป์", href: "/admin/champions", icon: Trophy },
     ],
   },
   {
     id: "content",
-    label: "จัดการคอนเทนต์",
-    icon: Newspaper,
+    label: "CONTENT",
     items: [
-      { name: "สินค้า", href: "/admin/shop", icon: ShoppingBag },
-      { name: "แกลเลอรี่", href: "/admin/gallery", icon: ImageIcon },
       { name: "ข่าวสาร", href: "/admin/news", icon: Newspaper },
+      { name: "Gallery", href: "/admin/gallery", icon: ImageIcon },
+      { name: "Shop", href: "/admin/shop", icon: ShoppingBag },
+      { name: "แพ็กเกจทีม", href: "/admin/packages", icon: Package },
     ],
   },
   {
     id: "system",
-    label: "ระบบ",
-    icon: Settings,
+    label: "SYSTEM",
     items: [
-      { name: "คำสั่งซื้อ", href: "/admin/orders", icon: CreditCard },
       { name: "ผู้ใช้", href: "/admin/users", icon: Users },
+      { name: "คำสั่งซื้อ", href: "/admin/orders", icon: CreditCard },
       { name: "ตั้งค่า", href: "/admin/settings", icon: Settings },
     ],
   },
 ];
-
-// ─── Helper ─────────────────────────────────────────────────────────────────
-function findActiveGroup(pathname: string): string | null {
-  for (const g of MENU_GROUPS) {
-    if (g.items.some((i) => pathname === i.href)) return g.id;
-  }
-  return null;
-}
 
 // ─── Inline transition styles ───────────────────────────────────────────────
 const SIDEBAR_TRANSITION = "width 300ms ease-in-out";
@@ -110,21 +94,7 @@ const FADE_IN_STYLE = (expanded: boolean): React.CSSProperties => ({
   whiteSpace: "nowrap" as const,
   overflow: "hidden" as const,
 });
-const ACCORDION_STYLE = (open: boolean): React.CSSProperties => ({
-  maxHeight: open ? "400px" : "0px",
-  opacity: open ? 1 : 0,
-  overflow: "hidden",
-  transition: "max-height 300ms ease-in-out, opacity 200ms ease-in-out",
-});
-const CHEVRON_STYLE = (open: boolean): React.CSSProperties => ({
-  transform: open ? "rotate(180deg)" : "rotate(0deg)",
-  transition: "transform 300ms ease-in-out",
-});
-const ACTIVE_BAR_STYLE = (active: boolean): React.CSSProperties => ({
-  transform: active ? "scaleY(1)" : "scaleY(0)",
-  transformOrigin: "top",
-  transition: "transform 200ms ease-in-out",
-});
+
 const DRAWER_STYLE = (open: boolean): React.CSSProperties => ({
   transform: open ? "translateX(0)" : "translateX(-100%)",
   opacity: open ? 1 : 0,
@@ -143,37 +113,22 @@ export default function AdminSidebar() {
   const { signOut } = useAuth();
 
   // Desktop hover expand
-  const [expanded, setExpanded] = useState(false);
-  // Accordion — single-open
-  const [openGroup, setOpenGroup] = useState<string | null>(
-    findActiveGroup(pathname)
-  );
+  const [expanded, setExpanded] = useState(true);
   // Mobile drawer
   const [mobileOpen, setMobileOpen] = useState(false);
-
-  // Auto-open accordion group for active route
-  useEffect(() => {
-    const active = findActiveGroup(pathname);
-    if (active) setOpenGroup(active);
-  }, [pathname]);
-
-  const toggleGroup = (id: string) =>
-    setOpenGroup((prev) => (prev === id ? null : id));
 
   const handleLogout = () => {
     signOut();
     router.push("/");
   };
 
-  const isActive = (href: string) => pathname === href;
-
-  // ── Active indicator bar ──────────────────────────────────────────────────
-  const ActiveBar = ({ active }: { active: boolean }) => (
-    <span
-      className="absolute left-0 top-1 bottom-1 w-[3px] rounded-full bg-yellow-400"
-      style={ACTIVE_BAR_STYLE(active)}
-    />
-  );
+  const isActive = (href: string) => {
+    // For dashboard, exactly match "/admin"
+    if (href === "/admin") {
+      return pathname === "/admin";
+    }
+    return pathname.startsWith(href);
+  };
 
   // ── Sidebar content ──────────────────────────────────────────────────────
   const renderContent = (isExpanded: boolean, isMobile: boolean) => {
@@ -218,116 +173,55 @@ export default function AdminSidebar() {
         )}
 
         {/* ── Navigation ───────────────────────────────────────────────── */}
-        <nav className="flex-1 overflow-y-auto overflow-x-hidden py-3">
-          {/* Dashboard — standalone */}
-          <div className="px-2 mb-1">
-            <Link
-              href={STANDALONE.href}
-              onClick={() => setMobileOpen(false)}
-              className={cn(
-                "relative flex items-center gap-3 rounded-md",
-                isExpanded ? "h-10 px-3 text-[13px]" : "h-10 justify-center",
-                isActive(STANDALONE.href)
-                  ? "bg-yellow-50 dark:bg-yellow-500/10 text-zinc-900 dark:text-yellow-400"
-                  : "text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+        <nav className="flex-1 overflow-y-auto overflow-x-hidden py-3 custom-scrollbar">
+          {MENU_GROUPS.map((group, idx) => (
+            <div key={group.id} className={cn("mb-2", idx === 0 ? "mt-0" : "mt-4")}>
+              {/* Section Header */}
+              {isExpanded ? (
+                <div 
+                  className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 px-5 py-2 mb-1"
+                  style={fadeStyle}
+                >
+                  {group.label}
+                </div>
+              ) : (
+                <div className="h-6 mx-2 border-b border-zinc-100 dark:border-zinc-800 mb-2 mt-4" />
               )}
-              style={{ transition: "background-color 200ms, color 200ms" }}
-            >
-              <ActiveBar active={isActive(STANDALONE.href)} />
-              <STANDALONE.icon
-                size={18}
-                strokeWidth={isActive(STANDALONE.href) ? 2.2 : 1.6}
-                className="shrink-0"
-              />
-              {isExpanded && (
-                <span className="font-medium" style={fadeStyle}>
-                  {STANDALONE.name}
-                </span>
-              )}
-            </Link>
-          </div>
 
-          {/* Grouped menus */}
-          {MENU_GROUPS.map((group) => {
-            const GroupIcon = group.icon;
-            const isOpen = openGroup === group.id;
-            const groupHasActive = group.items.some((i) => isActive(i.href));
-
-            return (
-              <div key={group.id} className="mt-2">
-                {/* Group header */}
-                {isExpanded ? (
-                  <button
-                    type="button"
-                    onClick={() => toggleGroup(group.id)}
-                    className="flex items-center w-full h-9 px-5 gap-2 text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300"
-                    style={{ transition: "color 200ms" }}
-                  >
-                    <span className="flex-1 text-left" style={fadeStyle}>
-                      {group.label}
-                    </span>
-                    <ChevronDown
-                      size={12}
-                      className="shrink-0"
-                      style={{
-                        ...CHEVRON_STYLE(isOpen),
-                        ...(isMobile ? {} : { opacity: isExpanded ? 1 : 0 }),
-                      }}
-                    />
-                  </button>
-                ) : (
-                  <div
-                    className="flex items-center h-10 justify-center mx-2 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-default"
-                    style={{ transition: "background-color 200ms" }}
-                  >
-                    <GroupIcon
-                      size={18}
-                      strokeWidth={1.6}
-                      className="shrink-0"
-                      style={{
-                        color: groupHasActive ? "#facc15" : undefined,
-                        transition: "color 200ms",
-                      }}
-                    />
-                  </div>
-                )}
-
-                {/* Accordion items */}
-                {isExpanded && (
-                  <div style={ACCORDION_STYLE(isOpen)}>
-                    <div className="px-2 pb-1 pt-0.5 space-y-0.5">
-                      {group.items.map((item) => {
-                        const Icon = item.icon;
-                        const active = isActive(item.href);
-                        return (
-                          <Link
-                            key={item.href}
-                            href={item.href}
-                            onClick={() => setMobileOpen(false)}
-                            className={cn(
-                              "relative flex items-center gap-3 h-10 px-3 rounded-md text-[13px]",
-                              active
-                                ? "bg-yellow-50 dark:bg-yellow-500/10 text-zinc-900 dark:text-yellow-400 font-semibold"
-                                : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 font-medium"
-                            )}
-                            style={{ transition: "background-color 200ms, color 200ms" }}
-                          >
-                            <ActiveBar active={active} />
-                            <Icon
-                              size={16}
-                              strokeWidth={active ? 2.2 : 1.5}
-                              className="shrink-0"
-                            />
-                            <span style={fadeStyle}>{item.name}</span>
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
+              {/* Items */}
+              <div className="px-2 space-y-0.5">
+                {group.items.map((item) => {
+                  const Icon = item.icon;
+                  const active = isActive(item.href);
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setMobileOpen(false)}
+                      className={cn(
+                        "relative flex items-center gap-3 h-10 rounded-md text-[13px] border-l-2",
+                        isExpanded ? "px-3" : "justify-center px-0",
+                        active
+                          ? "border-yellow-400 bg-yellow-50 dark:bg-yellow-950/30 text-zinc-900 dark:text-yellow-400 font-semibold"
+                          : "border-transparent text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 font-medium"
+                      )}
+                      title={!isExpanded ? item.name : undefined}
+                      style={{ transition: "background-color 200ms, color 200ms, border-color 200ms" }}
+                    >
+                      <Icon
+                        size={16}
+                        strokeWidth={active ? 2.2 : 1.5}
+                        className="shrink-0"
+                      />
+                      {isExpanded && (
+                        <span style={fadeStyle}>{item.name}</span>
+                      )}
+                    </Link>
+                  );
+                })}
               </div>
-            );
-          })}
+            </div>
+          ))}
         </nav>
 
         {/* ── Bottom ───────────────────────────────────────────────────── */}
@@ -337,9 +231,10 @@ export default function AdminSidebar() {
             onClick={() => setMobileOpen(false)}
             className={cn(
               "flex items-center gap-3 rounded-md text-[13px] text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800",
-              isExpanded ? "h-10 px-3" : "h-10 justify-center"
+              isExpanded ? "h-10 px-3 border-l-2 border-transparent" : "h-10 justify-center"
             )}
             style={{ transition: "background-color 200ms, color 200ms" }}
+            title={!isExpanded ? "กลับหน้าหลัก" : undefined}
           >
             <ChevronLeft size={18} strokeWidth={1.6} className="shrink-0" />
             {isExpanded && (
@@ -354,9 +249,10 @@ export default function AdminSidebar() {
             className={cn(
               "group/logout flex items-center gap-3 rounded-md text-[13px] w-full",
               "text-zinc-500 dark:text-zinc-400 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-500",
-              isExpanded ? "h-10 px-3" : "h-10 justify-center"
+              isExpanded ? "h-10 px-3 border-l-2 border-transparent" : "h-10 justify-center"
             )}
             style={{ transition: "background-color 200ms, color 200ms" }}
+            title={!isExpanded ? "ออกจากระบบ" : undefined}
           >
             <LogOut
               size={18}

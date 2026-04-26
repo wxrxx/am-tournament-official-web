@@ -44,11 +44,13 @@ const navLinks = [
   { name: "สโมสร", href: "/teams" },
   { name: "ตารางแข่งขัน", href: "/schedule" },
   { name: "ผลการแข่งขัน", href: "/results" },
+  { name: "ตารางคะแนน", href: "/standings" },
+  { name: "Bracket", href: "/bracket" },
+  { name: "ข่าวสาร", href: "/news" },
+  { name: "ทำเนียบแชมป์", href: "/champions" },
   { name: "สมัครทีม", href: "/register-team" },
   { name: "แกลเลอรี่", href: "/gallery" },
   { name: "สโตร์", href: "/shop" },
-  { name: "แพ็กทีม", href: "/team-package" },
-  { name: "ข่าวสาร", href: "/news" },
 ];
 
 export default function Navbar() {
