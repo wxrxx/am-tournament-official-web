@@ -5,6 +5,9 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
+  /* NAVBAR HEIGHT */
+  --nav-height: 52px;
+
   /* LIGHT MODE BASE */
   --background: #f8f8f8;
   --foreground: #111111;
